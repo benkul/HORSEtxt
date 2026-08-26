@@ -1,0 +1,50 @@
+# three channels, panned. each one independently may say nothing.
+# port of explainednothing/listening-room.html
+#
+# the silence is not a failure state. the dot pulses through it.
+
+@ underheard  4  right eye blind  left bias
+
+genotype AA icelandic
+
+band listening
+
+    forage tracks of 1 through 15 regrows
+
+    cue sound n side
+        remember bed as hands.document.createElement "audio"
+        bed.dataset.track becomes n
+        bed.dataset.pan becomes side
+        release bed
+
+    # a channel that declines is a channel that declined.
+    # there is nothing to handle and nothing to report.
+    cue open side
+        when weather.wet > 0.5
+            leave
+        release sound tracks.graze side
+
+    # the same snort means different things in different rooms.
+    # here it means the room is working.
+    lead mare enter
+        context room
+            hears snort
+                blank
+            hears squeal
+                halt
+
+        pace
+            open "left"
+            open "right"
+        walk
+            open "centre"
+
+        # always present, including in total silence. a tolt has no suspension,
+        # so the pulse never gaps.
+        #
+        # no halt: the compiler warns, and is right to. the pulse outlives the
+        # program on purpose.
+        tolt every 900ms
+            ^ tension ~0.15 ^
+
+        release

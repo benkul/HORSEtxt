@@ -20,18 +20,55 @@ band gallery
 
 ## Status
 
-**The compiler works. The delivery model does not exist yet.**
+**v0.1 runs, in the page.** Lexer, parser, resolver, emitter, runtime, browser loader,
+host, CLI, and a playground.
 
-HORSEtxt compiles and runs under Node, through the CLI. But the whole architecture was
-chosen so that a visitor who opens View Source reads HORSEtxt — delivered inline as
-`<script type="text/horse">`, compiled in the page. **There is no browser loader.** Until
-there is, the language works and the reason for its design does not.
+```
+npm test      # 191 tests
+npm run check # resolve every example
+npm run serve # then open http://localhost:8777/playground.html
+```
 
-Also missing from v0.1: `//# sourceURL` (so stack traces land on `.horse` lines rather
-than on generated code), a REPL, and a browser host — which means `stand` compiles but
-cannot hold, since it needs pointer events.
+```
+horsetxt check <file...>   report errors, print nothing on success
+horsetxt emit <file>       print the JavaScript
+horsetxt tokens <file>     print the token stream
+```
 
-Built: lexer, parser, resolver, emitter, runtime, and a CLI.
+The CLI's job is **validation, not deployment**. Nothing it emits is meant to be
+committed or served — the compiler runs in the page, and `.horse` source is delivered
+inline so that View Source shows HORSEtxt. This exists so a syntax error cannot ship.
+
+### In the page
+
+```html
+<script type="text/horse">
+band gallery
+    lead mare draw
+        ^ ears forward   head ~0.2 ^
+        release
+</script>
+<script type="module" src="src/browser.js"></script>
+```
+
+The loader finds every `text/horse` block, compiles it, and runs it. A block that fails
+to compile does not stop the ones after it. A block with no `lead mare` declares
+everything and runs nothing — real, readable, correct, and dead.
+
+The host writes the posture onto `<html>` as `data-ears`, `data-tension` and so on, so a
+page can style itself from what its program is doing. It also supplies the pointer that
+`stand` holds still against.
+
+### Not built yet
+
+`//# sourceURL` names the compiled script for devtools, but line numbers are the
+generated ones — HORSEtxt lines travel with the provenance the runtime carries, not with
+a source map. And from the language design's §5: blind spots and the monocular field, the
+point of balance, `flehmen` as required routing, phase-vector gaits, trials-to-criterion
+training, late-release degradation, and welfare as a capability gate.
+
+The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
+§12a–§12e. Worked programs are in `examples/`.
 
 ```
 npm test      # lexer, parser, resolver, emitter

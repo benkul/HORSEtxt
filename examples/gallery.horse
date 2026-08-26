@@ -1,0 +1,31 @@
+# draws without repeats until every image has shown once, then reshuffles.
+# port of explainednothing/components/gallery-config.js
+#
+# the order is not seeded and is not recorded. this is correct.
+
+@ patricia
+
+band gallery
+
+    forage deck of 1 through 438 regrows
+
+    cue draw
+        ^ ears forward   head ~0.2 ^
+        release deck.graze
+
+    cue place n
+        remember tile as hands.document.querySelector ".tile"
+        when not tile
+            balk
+        tile.dataset.image becomes n
+        release tile
+
+    # every seven seconds one tile is replaced. the pair that lands together
+    # was not chosen and will not happen again.
+    #
+    # this held gait has no halt, and the compiler says so. that is correct here
+    # and the warning is correct too: the page runs until it is closed.
+    lead mare rotate
+        walk every 7s
+            place (draw)
+        release

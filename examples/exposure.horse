@@ -1,0 +1,48 @@
+# a photograph develops if you hold still long enough.
+# port of explainednothing/components/losses-exposure.js
+
+@ archive  left bias
+
+band exposure
+
+    remember targets as [
+        ["loss-quiet-night"     "images/losses/loss1.jpg"]
+        ["loss-records-war"     "images/losses/loss3.jpg"]
+        ["loss-sun-also-rises"  "images/losses/loss2.jpg"]
+    ]
+
+    remember hold as 10s
+    remember jitter as 20px
+
+    # the hold. tension rises while nothing moves, and the ground darkens with it.
+    # if the pointer drifts past the jitter radius the stand breaks and nothing happened.
+    cue develop target
+        stand hold within jitter as held
+            ^ ears forward   tension ~held   head ~0.0 ^
+        otherwise
+            balk
+
+        release surface target[1]
+
+    # the reveal. slow, and dismissed by any attention at all.
+    cue surface image
+        remember sheet as hands.document.createElement "div"
+        sheet.style.backgroundImage becomes image
+        sheet.style.opacity becomes 0
+
+        walk
+            hands.document.body.appendChild sheet
+            ^ ears forward   lids AU143   tension ~0.1 ^
+            sheet.style.opacity becomes 1
+
+        context showing
+            hears squeal
+                sheet.style.opacity becomes 0
+                leave
+
+        release sheet
+
+    lead mare attach
+        graze targets as target
+            develop target
+        release

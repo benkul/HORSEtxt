@@ -740,6 +740,28 @@ Every example program failed the resolver on its first run — `fade-in`, `fade-
 `oldest` and `play` were all free variables. They had been passing the emit tests because
 importing a module parses it without running it. The examples are now self-contained.
 
+## 12e. Closed in draft 7 — found by building the browser host
+
+The loader is `src/browser.js`; the page is `playground.html`. Building the delivery
+model found six bugs, three of which meant a documented feature had never worked.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **A held gait had no exit** | `halt` was a no-op, so `walk every 7s` ran forever. Only `leave` (ends the program) or the host could stop it — a program could not stop its own loop. Found by a test suite that hung | `halt` ends the innermost gait or sentinel it is inside, and nothing more. Outside a gait there is nothing to stop and it does nothing (§5) |
+| **`release` did not release** | Inside a gait, `graze` or `stand` body, `release` compiled to `return` inside that body's callback — so it left the callback and the cue carried on. Silently returned the wrong value | Every outcome now unwinds to the cue boundary, as `balk` and `leave` already did |
+| **`graze` over a list never worked** | Every Array has `.entries` as a *method*, and the Pile check tested it for truthiness — so grazing a plain list grabbed the function and threw. `exposure.horse` had been broken the whole time | Ordered checks: Forage, Pile, null, Array, iterable, then a refusal that says so |
+| Gait and sentinel bodies did not hoist | Each statement compiles to its own thunk, so a `remember` inside one emitted an undeclared assignment | Bodies hoist, and a held gait's bindings survive between strides |
+| `~(x)` exempted itself | Graded parsing handled `(` itself, bypassing the rule that parenthesising a lone path calls it — so `~(draw)` was the cue, not its result | Graded operands go through `postfix` like everything else |
+| Nothing warned about an unbounded loop | Written twice by accident inside an hour | A held gait with no `halt` or `leave` anywhere in its body warns. Page programs legitimately have none, and the warning is still right to fire |
+
+**Not a bug, now documented:** a `halt` cannot un-strike a hoof already down. A trot's
+diagonal pair runs concurrently, so halting one does not stop the other — they had
+already landed. Only a sequential gait can be cut mid-stride.
+
+**Three of these were invisible because a test imported a module instead of running
+it.** Importing parses; it does not execute. Both the emit and browser suites now run
+the examples, with a lent DOM and a host that stops held gaits after one stride.
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only

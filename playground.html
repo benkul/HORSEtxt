@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HORSEtxt</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #111111; --dim: #6b6b6b; --line: #e0e0e0; --warm: #f6f5f2;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d0d0d; --fg: #e8e8e8; --dim: #8a8a8a; --line: #262626; --warm: #151515; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.5rem 4rem; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    max-width: 1100px; margin-inline: auto;
+  }
+  h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.14em; text-transform: lowercase; margin: 0 0 0.25rem; }
+  p.sub { color: var(--dim); margin: 0 0 2rem; font-size: 0.85rem; }
+  h2 { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim);
+       font-weight: 600; margin: 2rem 0 0.6rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  textarea, pre {
+    font: 12.5px/1.65 "Courier New", Courier, monospace;
+    background: var(--warm); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: 0.85rem; margin: 0; width: 100%;
+    white-space: pre; overflow: auto;
+  }
+  textarea { min-height: 22rem; resize: vertical; }
+  pre { min-height: 22rem; max-height: 22rem; }
+  pre.short { min-height: 6rem; max-height: 18rem; }
+  .row { display: flex; gap: 0.6rem; align-items: center; margin: 0.8rem 0 0; }
+  button {
+    font: inherit; font-size: 0.8rem; padding: 0.35rem 0.9rem;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid var(--fg); border-radius: 2px; cursor: pointer;
+  }
+  button:hover { background: var(--fg); color: var(--bg); }
+  select { font: inherit; font-size: 0.8rem; padding: 0.3rem; background: var(--bg);
+           color: var(--fg); border: 1px solid var(--line); }
+  .note { color: var(--dim); font-size: 0.78rem; margin: 0.5rem 0 0; }
+  code { font-family: "Courier New", monospace; background: var(--warm); padding: 0 0.2em; }
+
+  /* The posture is written onto <html> by the host, so the page can style itself
+     from what the program is doing. An agonistic chord is visible. */
+  #posture { font: 12px "Courier New", monospace; color: var(--dim); }
+  html[data-ears="agonistic"] #posture { color: #b23; }
+</style>
+</head>
+<body>
+
+<h1>horsetxt</h1>
+<p class="sub">a general-purpose language for horses &middot; compiles to javascript &middot; runs in the page</p>
+
+<!--
+  This block is real. It is not an example of the syntax — it is running.
+  A <script> with an unrecognised MIME type is inert: the browser does not parse it
+  and does not execute it. The compiler finds it, compiles it, and runs it.
+-->
+<script type="text/horse" data-name="welcome.horse">
+@ patricia  13  left bias
+
+band welcome
+
+    forage greeting of 1 through 3 regrows
+
+    cue attend
+        ^ ears forward   head ~0.2   tension ~0.1 ^
+        release greeting.graze
+
+    lead mare arrive
+        walk
+            attend
+        release
+</script>
+
+<h2>posture</h2>
+<div id="posture">reading&hellip;</div>
+<p class="note">
+  Written onto <code>&lt;html&gt;</code> by the host as <code>data-ears</code> and
+  friends, from the chord in <code>welcome.horse</code> above. Ears are attention, so an
+  agonistic chord turns this line red.
+</p>
+
+<h2>its own source</h2>
+<pre id="own" class="short">reading&hellip;</pre>
+<p class="note">
+  Read back out of the DOM with
+  <code>document.querySelector('script[type="text/horse"]').textContent</code>. Because
+  <code>.horse</code> blocks are inert data, a page can display, quote, misquote, or
+  withhold the program that runs it.
+</p>
+
+<h2>try it</h2>
+<div class="grid">
+  <div>
+    <textarea id="src" spellcheck="false"></textarea>
+    <div class="row">
+      <button id="run">run</button>
+      <select id="pick"></select>
+    </div>
+  </div>
+  <div>
+    <pre id="out">&nbsp;</pre>
+  </div>
+</div>
+
+<h2>report</h2>
+<pre id="log" class="short">&nbsp;</pre>
+
+<script type="module">
+import { compile, runSource, browserHost, blocks } from "./src/browser.js";
+import { SAMPLES } from "./examples/samples.js";
+
+const $ = (id) => document.getElementById(id);
+
+// -- the page reading itself ------------------------------------------------------
+const own = blocks()[0];
+$("own").textContent = own ? own.textContent.trim() : "(nothing found)";
+
+// -- the posture, once the loader has run ----------------------------------------
+function showPosture() {
+  const root = document.documentElement;
+  const shown = ["ears", "head", "tension", "nostrils", "lids", "voice", "tail"]
+    .map((k) => [k, root.getAttribute("data-" + k)])
+    .filter(([, v]) => v !== null)
+    .map(([k, v]) => `${k} ${v}`);
+  $("posture").textContent = shown.length ? shown.join("   ") : "(no utterance yet)";
+}
+setTimeout(showPosture, 50);
+
+// -- samples ---------------------------------------------------------------------
+// samples come from examples/samples.js, so a test can compile every one
+
+const pick = $("pick");
+for (const name of Object.keys(SAMPLES)) {
+  const o = document.createElement("option");
+  o.value = name; o.textContent = name;
+  pick.appendChild(o);
+}
+pick.addEventListener("change", () => {
+  $("src").value = SAMPLES[pick.value];
+  go();
+});
+$("src").value = SAMPLES["a stand"];
+
+// -- run -------------------------------------------------------------------------
+const host = browserHost();
+const log = [];
+function say(line) { log.push(line); $("log").textContent = log.slice(-40).join("\n"); }
+
+async function go() {
+  const source = $("src").value;
+  log.length = 0;
+
+  const out = compile(source, "playground.horse");
+  if (out.errors.length) {
+    $("out").textContent = "(did not compile)";
+    for (const e of out.errors) {
+      say(`${e.line}:${e.col}  ${e.message}`);
+      say(`  ${e.citation || ("GRAMMAR.md " + (e.section || ""))}`);
+      say("");
+    }
+    if (out.suppressed > 0) say(`${out.suppressed} more, not shown.`);
+    return;
+  }
+
+  $("out").textContent = out.code;
+  for (const w of out.warnings) {
+    say(`${w.line}:${w.col}  note: ${w.message}`);
+    if (w.citation) say(`  ${w.citation}`);
+  }
+
+  // Utterances and signals are reported in the order they happened, because the
+  // interesting part is often that a signal went unanswered — which is otherwise
+  // visible only as a chord that never appears.
+  const events = [];
+  const r = await runSource(source, "playground.horse", {
+    ...host,
+    onChord: (p) => { events.push(["chord", p]); host.onChord(p); showPosture(); },
+    onSignal: (name, answer) => { events.push(["signal", name, answer]); },
+  });
+
+  for (const e of events) {
+    if (e[0] === "chord") {
+      const p = e[1];
+      const states = p.states
+        .map((s) => (s.channel ? `${s.channel} ${fmt(s.value)}` : s.facs))
+        .join("   ");
+      say(`utterance  ${p.ears.padEnd(10)} ${states}`);
+    } else {
+      const [, name, a] = e;
+      say(a.answered
+        ? `signal     ${name.padEnd(10)} answered by ${a.by}`
+        : `signal     ${name.padEnd(10)} unanswered (${a.reason})`);
+    }
+  }
+  if (r.left) say("left. nothing further ran, and that is a success.");
+  else if (r.refused) say("balked.");
+  else if (r.threw) say(`stopped: ${r.threw.message || r.threw}`);
+  else say("ran.");
+  for (const d of r.horse.diagnostics) say(`note: ${d.message}\n  ${d.citation || ""}`);
+  if (!log.length) say("ran.");
+}
+
+function fmt(v) {
+  if (v == null) return "";
+  if (typeof v === "number") return String(v);
+  if (typeof v === "object") {
+    if (v.state) return v.state;
+    if (v.facs) return v.facs;
+    if (typeof v.arousal === "number") return `~${v.arousal}:~${v.valence}`;
+  }
+  return String(v);
+}
+
+$("run").addEventListener("click", go);
+go();
+</script>
+
+</body>
+</html>
