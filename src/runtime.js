@@ -186,7 +186,7 @@ export function pile(key) { return new Pile(key); }
 // With no declared individual, training, welfare, degradation and gait tempo do not
 // exist. With one, everything it does is conditioned, and nothing can opt out.
 
-const NATURAL_BAND = 4; // one stallion, 2–4 mares, offspring
+const NATURAL_BAND = 8; // one stallion, two to four mares, and offspring
 
 // Measured inter-onset intervals, in milliseconds (BIBLIOGRAPHY.md, gaits).
 const TEMPO = { walk: 301, trot: 352, pace: 352, canter: 148, gallop: 148, tolt: 301, back: 301 };

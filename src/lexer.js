@@ -38,7 +38,7 @@ const KEYWORDS = new Set([
   "genotype", "band", "herd", "bachelor", "bachelors", "context", "cue",
   "release", "lead", "mare",
   "walk", "trot", "pace", "canter", "gallop", "tolt", "halt", "stand", "back",
-  "graze", "forage", "regrows", "recognise", "weather", "hands",
+  "graze", "forage", "regrows", "recognise", "weather", "hands", "new",
   "spook", "flood", "habituates", "shy", "balk", "leave", "blank",
   "remember", "becomes", "pile", "when", "otherwise", "through",
   "whinny", "nicker", "squeal", "snort", "flehmen",
@@ -54,7 +54,9 @@ const ALLELES = new Set(["CA", "AA", "CC"]);
 const DURATION_SUFFIXES = ["ms", "h", "m", "s"];
 const DISTANCE_SUFFIXES = ["px", "%"];
 
-const OPERATORS = [">=", "<=", "!=", ">", "<", "=", "+", "-", "*", "/"];
+// `%` is also a distance unit, so it is disambiguated the same way `-` is: a suffix
+// binds only when it touches its number. `50%` is a distance, `50 % 3` is modulo.
+const OPERATORS = [">=", "<=", "!=", ">", "<", "=", "+", "-", "*", "/", "%"];
 
 // GRAMMAR.md §1 — the compiler reports below the tolerance threshold rather than
 // flooding. Flooding produces learned helplessness; see BIBLIOGRAPHY.md, habituation.
@@ -128,7 +130,7 @@ class Lexer {
       const c = this.at();
 
       if (c === "#") {
-        while (this.pos < this.src.length && this.at() !== "\n") this.advance();
+        this.skipComment();
         continue;
       }
 
@@ -194,10 +196,14 @@ class Lexer {
       }
     }
 
-    // Blank and comment-only lines carry no layout.
+    // Blank and comment-only lines carry no layout. A comment-only line is consumed
+    // here rather than in the main loop, so the ASCII check has to live in
+    // skipComment or every full-line comment escapes it — which is where all of
+    // them are.
     const c = this.at();
     if (c === undefined || c === "\n" || c === "#") {
-      while (this.pos < this.src.length && this.at() !== "\n") this.advance();
+      if (c === "#") this.skipComment();
+      else while (this.pos < this.src.length && this.at() !== "\n") this.advance();
       if (this.at() === "\n") this.advance();
       return false;
     }
@@ -217,6 +223,22 @@ class Lexer {
     }
     this.spaceBefore = true;
     return true;
+  }
+
+  // A comment runs to end of line, and its text is checked for ASCII like
+  // everything else. §1.1 says no exceptions and it means it: inline source sits in
+  // the page, so a stray byte here shows up garbled in View Source, which is the
+  // one surface the delivery model exists to serve.
+  skipComment() {
+    while (this.pos < this.src.length && this.at() !== "\n") {
+      if (this.at().charCodeAt(0) > 127) {
+        this.fail(
+          `non-ASCII character ${JSON.stringify(this.at())} in a comment`,
+          "§1.1",
+        );
+      }
+      this.advance();
+    }
   }
 
   skipSpaces() {

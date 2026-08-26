@@ -14,6 +14,9 @@
 
 const MAX_REPORTED = 3;
 
+// One stallion, two to four mares, and offspring.
+const NATURAL_BAND = 8;
+
 // Reachable everywhere. `weather` and `hands` are their own AST nodes, so they never
 // arrive here as names.
 const BUILTIN_SIGNALS = ["whinny", "nicker", "squeal", "snort"];
@@ -144,11 +147,15 @@ class Resolver {
         const declared = s.body.filter(
           (d) => d.type === "Cue" || d.type === "Group",
         ).length;
-        if (s.kind === "band" && declared > 4) {
+        // A band is one stallion, two to four mares, and youngsters up to two or
+        // three years old — so three to five adults plus offspring, and six to
+        // eight members is ordinary. Set at 4 this fired on natural sizes, which
+        // real code found immediately.
+        if (s.kind === "band" && declared > NATURAL_BAND) {
           this.warn(
             s,
             `band ${s.name} holds ${declared} declarations; a band is one stallion, ` +
-            `2-4 mares and their offspring`,
+            `two to four mares, and their offspring`,
             "IFCE, social organisation in herds of horses",
           );
         }
@@ -449,6 +456,23 @@ class Resolver {
       case "Recognise":
         this.expr(e.value, scope);
         return;
+      case "New": {
+        this.expr(e.target, scope);
+        for (const a of e.args) this.expr(a, scope);
+        // Constructors live outside the effect system, and so does everything
+        // reached through them. Allowing `new` on a cue would put an unconditioned
+        // path into the middle of the language.
+        let root = e.target;
+        while (root && (root.type === "Member" || root.type === "Index")) root = root.object;
+        if (!root || root.type !== "Hands") {
+          this.fail(
+            e,
+            "`new` builds a JavaScript object, so it only applies to a `hands` path",
+            "GRAMMAR.md §11",
+          );
+        }
+        return;
+      }
       case "Chord":
         this.chord(e, scope);
         return;

@@ -246,12 +246,21 @@ test("every wants a duration", () => {
 
 // --------------------------------------------------------------------- warnings
 
+test("a band of natural size does not warn", () => {
+  // One stallion, four mares, and offspring — six to eight members is ordinary.
+  const src = ["band ordinary"].concat(
+    [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `    cue c${n}\n        release`),
+  ).join("\n") + "\n";
+  eq(analyse(src).warnings, []);
+});
+
 test("an oversized band warns with its citation", () => {
   const src = ["band big"].concat(
-    [1, 2, 3, 4, 5].map((n) => `    cue c${n}\n        release`),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `    cue c${n}\n        release`),
   ).join("\n") + "\n";
   const w = analyse(src).warnings;
-  ok(/2-4 mares/.test(w[0].message), w[0].message);
+  ok(w.length > 0, "expected a warning");
+  ok(/two to four mares/.test(w[0].message), w[0].message);
   ok(/IFCE/.test(w[0].citation), w[0].citation);
 });
 

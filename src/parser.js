@@ -684,7 +684,7 @@ class Parser {
 
   parseProduct() {
     let left = this.parseUnary();
-    while (this.is(T.OP) && (this.tok.value === "*" || this.tok.value === "/")) {
+    while (this.is(T.OP) && ["*", "/", "%"].includes(this.tok.value)) {
       const op = this.next();
       const right = this.parseUnary();
       left = this.node("Binary", op, { op: op.value, left, right });
@@ -731,7 +731,7 @@ class Parser {
         return true;
       case T.KEYWORD:
         return t.value === "weather" || t.value === "hands" ||
-               t.value === "recognise" || t.value === "flehmen";
+               t.value === "recognise" || t.value === "flehmen" || t.value === "new";
       default:
         return false;
     }
@@ -839,6 +839,20 @@ class Parser {
       if (t.value === "hands") {
         this.next();
         return this.node("Hands", t, {});
+      }
+      // Constructing a JavaScript object has no equine analogue, so it stays plain
+      // and stays inside the escape hatch: `new hands.Date 2000 0 6`. Without it
+      // `hands` is one-way — methods and properties reachable, constructors not.
+      if (t.value === "new") {
+        this.next();
+        const target = this.parsePostfix();
+        const args = [];
+        while (this.startsArgument()) {
+          const a = this.parsePostfix();
+          if (a === null) break;
+          args.push(a);
+        }
+        return this.node("New", t, { target, args });
       }
       if (t.value === "recognise") {
         this.next();

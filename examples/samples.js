@@ -41,7 +41,7 @@ band exposure
 
   "agonistic ears": `band warning
 
-    # both ears flattened is agonistic — and an animal that is not attending
+    # both ears flattened is agonistic, and an animal that is not attending
     # does not answer signals. the handler below never fires.
     lead mare warn
         context room
@@ -94,7 +94,7 @@ band exposure
 
     forage strides of 1 through 5
 
-    # the release is the reinforcer. releasing late does not merely take longer —
+    # the release is the reinforcer. releasing late does not merely take longer:
     # it punishes the response it should reward. this cue takes well over a second
     # to release, and says so.
     lead mare dawdle

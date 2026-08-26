@@ -391,6 +391,13 @@ class Emitter {
     return `(await H.flehmen(${this.expr(n.value)}, ${side(n.lateral)}))`;
   }
 
+  // Plain JavaScript construction, and deliberately not awaited: a constructor is
+  // not a cue and is not conditioned by anything.
+  e_New(n) {
+    const args = n.args.map((a) => this.expr(a));
+    return `(new ${this.expr(n.target)}(${args.join(", ")}))`;
+  }
+
   e_Member(n) { return `${this.expr(n.object)}.${n.name}`; }
   e_Index(n) { return `${this.expr(n.object)}[${this.expr(n.index)}]`; }
   e_Not(n) { return `(!H.truth(${this.expr(n.value)}))`; }
@@ -419,12 +426,18 @@ class Emitter {
            `[${states.join(", ")}], ${side(n.lateral)})`;
   }
 
-  // A call through `hands` is a plain JavaScript call: flat, unconditioned, outside
-  // the effect system. Everything else routes through H.call so that laterality and
-  // provenance apply.
+  // A cue is always a bare name — cues are declared in a band, never as a member of
+  // something. So a Member or Index callee is a JavaScript method, and it must be
+  // emitted with its receiver attached: routing `query.get` through H.call would
+  // invoke it detached, and `this` would be undefined.
+  //
+  // That also means a JavaScript method stays unconditioned even when the object it
+  // belongs to was bound to a local name — which is right. Binding a value out of
+  // `hands` does not bring it inside the effect system.
   e_Call(n) {
     const args = n.args.map((a) => this.expr(a));
-    if (rootIsHands(n.callee)) {
+    if (n.callee.type === "Member" || n.callee.type === "Index" ||
+        n.callee.type === "Hands" || rootIsHands(n.callee)) {
       return `(await ${this.expr(n.callee)}(${args.join(", ")}))`;
     }
     return `(await H.call(${this.expr(n.callee)}, [${args.join(", ")}], ${side(n.lateral)}))`;

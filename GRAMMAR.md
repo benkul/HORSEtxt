@@ -600,7 +600,7 @@ negation     = [ "not" ] , range ;
 range        = comparison , [ "through" , comparison ] ;
 comparison   = sum , [ ( ">" | "<" | ">=" | "<=" | "=" | "!=" ) , sum ] ;
 sum          = product , { ( "+" | "-" ) , product } ;
-product      = unary , { ( "*" | "/" ) , unary } ;
+product      = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary        = [ "-" ] , postfix ;
 postfix      = primary , { "." , member | "[" , expression , "]" } ;
 primary      = number | string | duration | distance | graded | affect
@@ -608,6 +608,7 @@ primary      = number | string | duration | distance | graded | affect
              | recognise
              | "flehmen" , expression , [ lateral_mod ]
              | "hands"
+             | "new" , postfix , { argument }
              | call
              | "(" , expression , ")" ;
 list         = "[" , { expression } , "]" ;
@@ -638,6 +639,20 @@ is how training persists.
 and unconditioned: not subject to laterality, welfare, or training. Horses signal to humans
 deliberately and differently than to conspecifics; a separate channel, not a dialect of the
 same one.
+
+**`new` constructs, and only through `hands`.** Without it the escape hatch is one-way —
+methods callable, properties readable, constructors out of reach — which was discovered
+the first time a real program needed `new Date(…)`. Constructing a JavaScript object has no
+equine analogue, so per principle zero it stays plain, and it is confined to a `hands` path
+so that no unconditioned construction can appear in the middle of the language:
+
+```
+remember epoch as new hands.Date 2000 0 6 18 14 0
+remember asked as new hands.URLSearchParams hands.location.search
+```
+
+Arguments are positional and bare, as everywhere else. A constructor is not a cue, so the
+call is not awaited and is subject to nothing.
 
 Not `handler` — that is the human's own job title, the outside view again. From the
 horse's side the salient fact about a human is **hands**: they open gates, carry buckets,
@@ -790,6 +805,48 @@ already landed. Only a sequential gait can be cut mid-stride.
 **Three of these were invisible because a test imported a module instead of running
 it.** Importing parses; it does not execute. Both the emit and browser suites now run
 the examples, with a lent DOM and a host that stops held gaits after one stride.
+
+## 12f. Closed in draft 8 — found by converting production code
+
+The first conversion of a real, live mechanism: a date-gated feature that rewrites a
+page's links on one night in twenty-nine and does nothing on the other twenty-eight.
+Twenty-two lines of JavaScript. It found six problems, three of which made the language
+unable to do the job at all.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **No `new`** | `hands` was a one-way hatch: methods callable and properties readable, but constructors out of reach. Real code needed `new Date(…)` in its first five lines | `new` constructs, confined to a `hands` path. No equine analogue, so it stays plain (§11) |
+| **No modulo** | `%` was simply absent. A cyclic calculation cannot be written without it, and this codebase uses it constantly | `%` at product precedence. It is also a distance unit, so it is disambiguated by whitespace exactly as `-` is: `50%` is a distance, `50 % 3` is modulo (§1.2, §11) |
+| **Method calls lost their receiver** | A call whose callee was a member routed through `H.call`, which invoked it **detached** — `this` undefined. Every DOM method call in the conversion was broken, and the failure was `Value of "this" must be of type URLSearchParams` at runtime, not at compile time | A cue is always a bare name, so a Member or Index callee is a JavaScript method and is emitted with its receiver attached, unconditioned. Binding a value out of `hands` does not bring it inside the effect system |
+| The band lint fired on natural sizes | Set at 4 declarations. But a band is one stallion, two to four mares, *and their offspring* — six to eight is ordinary. The lint was wrong, not the code | Threshold raised to 8, in both the resolver and the runtime |
+| Comment-only lines escaped the ASCII check | `layout()` consumes a full-line comment with its own end-of-line skip, so §1.1's "no exceptions" had one — and every comment in the codebase is a full-line comment | The check lives in `skipComment`, which both paths call. This matters most for inline source: a stray byte shows up garbled in View Source, which is the surface the delivery model exists to serve |
+| The CLI could not read HTML | Source has to be inline for View Source to show it, so HTML is where source lives — and the validator could only read `.horse` files. A separate `.horse` copy would have been a duplicate waiting to drift | `check`, `emit` and `tokens` extract every inline block from an `.html` file, with line offsets so reported positions point into the page |
+
+### Friction that is not a bug
+
+Two things made the conversion harder to write correctly than it should have been, and
+neither is wrong — but both are silent when you get them wrong.
+
+**A zero-argument call needs parentheses**, so `now.getTime` is the method and
+`(now.getTime)` calls it. Written the first way inside arithmetic, the program subtracts
+two *functions* and gets `NaN` — no error, at compile time or run time. The rule is
+right; the failure is quiet.
+
+**Arguments are postfix**, so an expression argument needs parentheses:
+`link.setAttribute "href" (base + rest)`. Without them, application stops at `base` and
+the `+` dangles.
+
+### The honest cost
+
+Seventy lines of HORSEtxt for twenty-two lines of JavaScript, most of the difference
+being that every cue must name its outcome and that one function with early returns
+became four cues.
+
+What the length buys is that the ordinary case is now stated rather than implied: the
+JavaScript said `if (!isFullMoon()) return;` and the HORSEtxt says `leave` — a terminal
+success, twenty-seven nights in twenty-nine. The storage read that might throw says
+`spook … habituates after 1` instead of a bare `catch {}`. Whether that is worth three
+times the lines is a judgement, and it should be made per mechanism rather than assumed.
 
 ## 13. Still open
 
