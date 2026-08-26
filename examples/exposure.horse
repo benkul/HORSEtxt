@@ -1,7 +1,10 @@
 # a photograph develops if you hold still long enough.
-# port of explainednothing/components/losses-exposure.js
+#
+# the `stand` primitive: an input that withholds motion rather than producing it.
+# hold the pointer inside a small radius for ten seconds and an image surfaces.
+# drift, and nothing happened.
 
-@ archive  left bias
+@ juniper  left bias
 
 band exposure
 

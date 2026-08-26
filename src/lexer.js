@@ -236,9 +236,9 @@ class Lexer {
     const col = this.col;
     const c = this.at();
 
-    // GRAMMAR.md §1.1 — ASCII only. Six of explainednothing's pages declare no
-    // charset, and entities are not decoded inside <script>, so a non-ASCII byte
-    // is a program that stops parsing somewhere else.
+    // GRAMMAR.md §1.1 — ASCII only. A page may declare no charset, and entities are
+    // not decoded inside <script>, so a non-ASCII byte is a program that stops
+    // parsing somewhere nowhere near where it broke.
     if (c.charCodeAt(0) > 127) {
       this.fail(`non-ASCII character ${JSON.stringify(c)}`, "§1.1", line, col);
       this.advance();

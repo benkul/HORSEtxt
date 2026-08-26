@@ -1,9 +1,10 @@
-# draws without repeats until every image has shown once, then reshuffles.
-# port of explainednothing/components/gallery-config.js
+# a rotating gallery. draws without repeats until every image has shown once,
+# then the forage regrows and it begins again.
 #
-# the order is not seeded and is not recorded. this is correct.
+# the order is not seeded and is not recorded. a pair of images that land together
+# was not chosen and will not happen again.
 
-@ patricia
+@ bay
 
 band gallery
 

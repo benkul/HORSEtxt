@@ -3,7 +3,7 @@
 // nobody can see is broken.
 
 export const SAMPLES = {
-  "a stand": `@ archive  left bias
+  "a stand": `@ juniper  left bias
 
 band exposure
 

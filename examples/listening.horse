@@ -1,9 +1,9 @@
-# three channels, panned. each one independently may say nothing.
-# port of explainednothing/listening-room.html
+# three ambient channels, panned. each one independently may say nothing.
 #
-# the silence is not a failure state. the dot pulses through it.
+# refusal as a terminal success: a channel that declines has declined, and there is
+# nothing to handle. the silence is not a failure state, and the pulse runs through it.
 
-@ underheard  4  right eye blind  left bias
+@ birch  4  right eye blind  left bias
 
 genotype AA icelandic
 

@@ -184,8 +184,10 @@ never generated.
 https://www.sciencedirect.com/science/article/abs/pii/S0168159118306361
 
 `forage` (draw without replacement) and `recognise` (deterministic derivation) are cited
-under refusal and retention respectively. The three are separate constructs because
-requirements §2.5 forbids substituting one for another.
+under refusal and retention respectively. The three are separate constructs, and
+deliberately so: `forage` depletes, `recognise` is stable, `weather` is read. Silently
+substituting one for another is the kind of bug that only shows up much later, so the
+grammar makes it impossible rather than discouraged.
 
 ### The individual conditions
 

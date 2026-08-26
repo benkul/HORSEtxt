@@ -24,9 +24,9 @@ band gallery
 host, CLI, and a playground.
 
 ```
-npm test      # 191 tests
+npm test      # lexer, parser, resolver, emitter, loader
 npm run check # resolve every example
-npm run serve # then open http://localhost:8777/playground.html
+npm run serve # serve the playground — see below
 ```
 
 ```
@@ -59,38 +59,61 @@ The host writes the posture onto `<html>` as `data-ears`, `data-tension` and so 
 page can style itself from what its program is doing. It also supplies the pointer that
 `stand` holds still against.
 
-### Not built yet
+## The playground
 
-`//# sourceURL` names the compiled script for devtools, but line numbers are the
-generated ones — HORSEtxt lines travel with the provenance the runtime carries, not with
-a source map. And from the language design's §5: blind spots and the monocular field, the
-point of balance, `flehmen` as required routing, phase-vector gaits, trials-to-criterion
-training, late-release degradation, and welfare as a capability gate.
+`playground.html` is the language running in a real page. It carries a live
+`<script type="text/horse">` block, an editor with worked samples, the JavaScript each
+one compiles to, and a report of every utterance and signal in the order they happened.
+
+**It must be served over HTTP, not opened from disk.** The page loads the compiler as an
+ES module, and module imports from a `file://` URL are blocked by CORS in every browser —
+you get an opaque loading error rather than anything useful.
+
+```
+npm run serve
+# then open http://localhost:8777/playground.html
+```
+
+That runs `python3 -m http.server 8777` from the project root. Any static server on any
+port works just as well — `npx serve`, `php -S localhost:8777`, whatever is to hand.
+
+Four things on the page are worth looking at directly:
+
+- **posture** — read from `<html>`'s data attributes, written by the host from the chord
+  in the live block above it. An agonistic chord turns the line red, which is CSS
+  reacting to what the program said.
+- **its own source** — the live block's text, read back out of the DOM. Because
+  `.horse` blocks are inert data, a page can display, quote, misquote, or withhold the
+  program that runs it.
+- **the `agonistic ears` sample** — the clearest demonstration of contextual dispatch.
+  Both ears flattened means the animal is not attending, so the `snort` goes unanswered
+  and the handler never fires. The report distinguishes `unanswered (not attending)` from
+  `unanswered (nobody there)`: two silences that mean different things.
+- **View Source** — the point of the whole architecture. The `.horse` block is there as
+  source, and there is no compiled JavaScript anywhere in the page.
+
+## Not built yet
+
+`//# sourceURL` names the compiled script for devtools, but the line numbers are the
+generated ones — HORSEtxt lines travel with the provenance the runtime carries on every
+emission, not with a source map.
+
+Beyond that, the parts of the design still ahead of the implementation:
+
+- **The body and its limits.** Blind spots and the monocular field — a horse cannot see
+  its own muzzle, so a value held too close cannot be read. The point of balance as a
+  directional operator. `flehmen` as *required* routing for a deep read rather than an
+  optional one. Gaits as phase vectors that interpolate, instead of six named regions.
+- **History as semantics.** Trials-to-criterion training, so a newly defined cue is not
+  reliable until it has been run. Late-release degradation toward learned helplessness.
+  Welfare as a capability gate.
+
+Laterality is threaded through calls, chords and `flehmen` today, but only
+*consequential* in `flehmen` — the divergence between the two hemispheres needs the
+perception model above.
 
 The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
 §12a–§12e. Worked programs are in `examples/`.
-
-```
-npm test      # lexer, parser, resolver, emitter
-npm run check # resolve every example
-```
-
-```
-horsetxt check <file...>   report errors, print nothing on success
-horsetxt emit <file>       print the JavaScript
-horsetxt tokens <file>     print the token stream
-```
-
-The CLI's job is **validation, not deployment**. Nothing it emits is meant to be
-committed or served — the compiler runs in the page, and `.horse` source is delivered
-inline so that View Source shows HORSEtxt. This exists so a syntax error cannot ship.
-
-The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
-§12a–§12d. Worked programs are in `examples/`.
-
-Not yet built: blind spots and the monocular field, the point of balance, `flehmen` as
-required routing, phase-vector gaits, trials-to-criterion training, late-release
-degradation, and welfare as a capability gate. See §5 of the language design.
 
 ## What it is
 
@@ -134,13 +157,12 @@ EAD103 in an affiliative context.
 Every confounding behaviour in this language is derivable from published horse behaviour.
 Nothing is arbitrary. If a rule cannot be traced to a citation, it is a bug.
 
-## Design documents
+## Where the reasoning lives
 
-Design lives with its first consumer, in `explainednothing/planning/`:
-
-- `horsetxt-research.md` — the ethology, sourced. The authority for every semantic claim.
-- `horsetxt-requirements.md` — what a real site needs a scripting language to do.
-- `horsetxt-language.md` — the language design and every decision with its reasoning.
+- `BIBLIOGRAPHY.md` — the manual. Every construct, and the paper it comes from.
+- `GRAMMAR.md` §12a–§12e — every gap the implementation found, in the order it found
+  them, with what changed and why. Read as a record of a design meeting reality.
+- `STDLIB.md` — what the small standard library holds, and what it deliberately omits.
 
 ## Licence
 

@@ -1,10 +1,34 @@
 # HORSEtxt — Grammar
 
-Version 0.1 draft 2. Draft 1 was written before the example programs; this closes the
-gaps they surfaced. Changes are listed in §12.
+Version 0.1, draft 7. Each draft closed gaps the previous one could not see; §12a–§12e
+record what was found and how, in the order it happened.
 
-Register (decided): **prose for keywords, terse for expressions.** Indentation-delimited
-blocks. Lowercase. Minimal punctuation. ASCII only — see §1.1.
+Register: **prose for keywords, terse for expressions.** Indentation-delimited blocks.
+Lowercase. Minimal punctuation. ASCII only — see §1.1.
+
+---
+
+## 0. Principle zero
+
+**Where there is no honest equine analogue, HORSEtxt stays plain.**
+
+Horses have nothing to say about DOM selection, string formatting, or integer division.
+Inventing correspondences for those is the failure mode this language is most exposed to:
+the moment one token is invented for convenience, every real token loses its credibility.
+
+So the mapping is selective and defensible. Behaviour, execution, scope, failure,
+persistence and I/O map onto real ethology because real ethology genuinely covers them —
+each carries its citation in `BIBLIOGRAPHY.md`. Arithmetic does not map, and stays
+arithmetic. Everything unmapped looks like a normal language, and that contrast is what
+makes the mapped parts land.
+
+The stricter form of the same rule governs anything deliberately confounding:
+**every confounding behaviour must be derivable from published horse behaviour.** If a
+rule cannot be traced to a citation, it is not foreign. It is just bad.
+
+A consequence worth stating, because it is easy to reach for by reflex: **the tooling does
+not explain.** Errors cite. There is no resolver that hands you the meaning of a token in
+context — that would convert foreign into annotated, and the difficulty is the point.
 
 ---
 
@@ -12,10 +36,15 @@ blocks. Lowercase. Minimal punctuation. ASCII only — see §1.1.
 
 ### 1.1 Character set
 
-**ASCII only, no exceptions.** Six of explainednothing's 95 pages declare no charset, and
-HTML entities are not decoded inside `<script>` elements, so the language cannot spell its
-own syntax with `&#94;`. Every mark must be one ASCII character reachable in one
-keystroke.
+**ASCII only, no exceptions.** Plenty of pages in the wild declare no charset at all, and
+a non-ASCII mark in one of those is a program that stops parsing for reasons nowhere near
+where it broke. The usual escape hatch does not apply either: **HTML entities are not
+decoded inside `<script>` elements**, so `&#94;` would stay literal and the language
+cannot spell its own syntax that way.
+
+Every mark must therefore be one ASCII character reachable in one keystroke. That rules
+out the genuinely exotic options, and it is the right kind of hostile: foreign to read,
+not impossible to type.
 
 ### 1.2 Marks
 
@@ -430,8 +459,8 @@ a runtime change and not a syntax change — §7.6 means there is no migration c
 so a later rename would break every program with no ecosystem able to fix it.
 
 **The three are deliberately different constructs.** `forage` depletes, `recognise` is
-stable, `weather` is read. Requirements §2.5 forbids substituting one for another, and the
-grammar makes it impossible rather than discouraged.
+stable, `weather` is read. Silently substituting one for another is the kind of bug that
+surfaces much later, so the grammar makes it impossible rather than discouraged.
 
 ---
 

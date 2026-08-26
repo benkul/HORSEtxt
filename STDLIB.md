@@ -1,6 +1,6 @@
 # HORSEtxt — Standard Library
 
-Closes grammar gap 17.
+Closes gap 17 in `GRAMMAR.md` §13. Bare section references below are to `GRAMMAR.md`.
 
 **It is small on purpose.** `hands` is the escape hatch for everything that is not
 horse, and per principle zero — where there is no honest equine analogue, HORSEtxt stays
@@ -39,10 +39,10 @@ through `hands`.
 | `count` | items remaining | not the original size |
 | `empty` | truth | |
 
-Forage is not a list. It cannot be indexed, and it has no `first` or `last` — the order is
-drawn, not chosen, and exposing a position would make it reproducible. This is the gallery
-rule enforced by the type: *"The gallery shows images in an order no one chose. This is
-correct. Do not seed it."*
+Forage is not a list. It cannot be indexed, and it has no `first` or `last` — **the order
+is drawn, not chosen**, and exposing a position would make the draw reproducible. That is
+enforced by the type rather than asked for politely: a shuffle nobody can index is a
+shuffle nobody can seed.
 
 ## Piles
 
@@ -79,6 +79,7 @@ operators. No date or time library — `duration` is a type, not a clock, and cl
 from `hands`. No JSON. No regular expressions. No I/O other than signals (§8) and
 `pile`.
 
-If that feels thin: it is. The language's weight is in §4 (chords), §8 (contexts), and the
-mechanisms in the design doc's §2.6 — not in the library. A horse does not have a standard
-library.
+If that feels thin: it is. The language's weight is in `GRAMMAR.md` §4 (chords) and §8
+(contexts and signals), and in the mechanisms that make it foreign — laterality, blind
+spots, habituation, refusal, training. Not in the library. A horse does not have a
+standard library.

@@ -116,8 +116,8 @@ export function weather(condition) {
 // ------------------------------------------------------------------------ recognise
 //
 // Same input, same identity, every time — a discrimination retained at six years
-// and a categorisation at ten. djb2 into xorshift32, the algorithm the first
-// consumer already uses for its deterministic generator.
+// and a categorisation at ten. djb2 into xorshift32: a hash with good dispersal
+// feeding a PRNG with a short period, which is enough for stable recall.
 
 export function recognise(value) {
   const s = typeof value === "string" ? value : JSON.stringify(value) ?? String(value);
@@ -505,9 +505,9 @@ export class Horse {
 
   // ---------------------------------------------------------------------- stand
   //
-  // The one input on the first consumer's site that withholds motion rather than
-  // producing it. It needs a pointer; with no host providing one the hold cannot
-  // be held, so it breaks — and a broken hold runs `otherwise`.
+  // The one input in the language that withholds motion rather than producing it.
+  // It needs a pointer; with no host providing one the hold cannot be held, so it
+  // breaks — and a broken hold runs `otherwise`.
 
   async stand(opts, body, otherwise) {
     const ms = opts.duration == null ? 0 : durationMs(opts.duration);
