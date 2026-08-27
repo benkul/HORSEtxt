@@ -192,6 +192,14 @@ class Resolver {
       case "Assign":
         this.expr(s.target, scope);
         this.expr(s.value, scope);
+        // A pile is append-only, so writing to one leaves a trace rather than
+        // replacing it. Only the resolver knows the target is a pile, so it marks
+        // the node for the emitter — without this, `passing becomes now` overwrote
+        // the pile with a number and every count read back undefined.
+        if (s.target.type === "Name") {
+          const info = scope.lookup(s.target.name);
+          if (info && info.kind === "pile") s.appends = true;
+        }
         return;
 
       case "Release":

@@ -231,6 +231,11 @@ class Emitter {
   }
 
   s_Assign(node) {
+    // Writing to a pile appends; a pile has no delete and nothing to overwrite.
+    if (node.appends) {
+      this.line(`H.leaveTrace(${this.expr(node.target)}, ${this.expr(node.value)});`);
+      return;
+    }
     this.line(`${this.expr(node.target)} = ${this.expr(node.value)};`);
   }
 

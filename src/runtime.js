@@ -133,21 +133,18 @@ export function recognise(value) {
 // Append-only, keyed, persistent — the stud pile. Storage can throw (private mode)
 // and can come back empty, and a pile must read correctly with nothing stored.
 
-// Probed once. Storage can be absent, can throw on access, and can come back empty.
-let store = null;
-let storeProbed = false;
-
+// Read fresh every time, and never cached. Caching the reference meant a page that
+// swapped `localStorage` kept writing to the old one; caching the *failure* meant
+// storage stayed off forever once any probe threw. Access can throw and can come
+// back empty, so both are simply tried.
 function storage() {
-  if (storeProbed) return store;
-  storeProbed = true;
   try {
     const s = globalThis.localStorage;
     s.getItem("horsetxt.probe");
-    store = s;
+    return s;
   } catch (e) {
-    store = null;
+    return null;
   }
-  return store;
 }
 
 class Pile {
@@ -174,6 +171,14 @@ class Pile {
   get count() { return this.entries.length; }
   get empty() { return this.entries.length === 0; }
   get graze() { return this.entries[this.entries.length - 1]; }
+
+  // Every mark, oldest first, and indexable — unlike forage, whose order is *drawn*
+  // and where exposing a position would make the draw reproducible. A pile's order
+  // is the order things happened, so reading a trail off it is the point.
+  //
+  // A copy: a pile is append-only, and handing out the array would let a caller
+  // rewrite what was already left.
+  get marks() { return this.entries.slice(); }
 }
 
 export function pile(key) { return new Pile(key); }
@@ -223,16 +228,34 @@ function mirrored(vector) {
   return { phases: [rh, rf, lh, lf], duty: vector.duty };
 }
 
-// Statements are assigned to limbs in order and grouped by the phase they strike at,
-// so the schedule falls out of the vector rather than out of a switch.
+// The stride's shape: how many limbs strike at each beat, in the order the beats
+// happen. A trot is [2, 2] — two pairs. A canter is [1, 2, 1]. A walk is [1,1,1,1].
+function shapeOf(vector) {
+  const counts = new Map();
+  for (const p of vector.phases) counts.set(p, (counts.get(p) || 0) + 1);
+  return [...counts.entries()].sort((a, b) => a[0] - b[0]).map(([, n]) => n);
+}
+
+// Statements are filled into the stride **in the order the beats happen**, not
+// assigned to named limbs.
+//
+// Assigning statement 0 to the left hind was the obvious reading and it was wrong:
+// statements have an order, not a limb identity. It meant two statements in a trot
+// landed on a hind and a fore of the same side — which strike at different times —
+// so the canonical two-at-once gait ran them sequentially, and statement 0 could
+// happen last for no reason a reader could derive.
 function schedule(vector, thunks) {
-  const groups = new Map();
-  thunks.forEach((t, i) => {
-    const phase = vector.phases[i % LIMBS.length];
-    if (!groups.has(phase)) groups.set(phase, []);
-    groups.get(phase).push(t);
-  });
-  return [...groups.entries()].sort((a, b) => a[0] - b[0]).map(([, g]) => g);
+  const sizes = shapeOf(vector);
+  const groups = [];
+  let i = 0;
+  while (i < thunks.length) {
+    for (const size of sizes) {
+      if (i >= thunks.length) break;
+      groups.push(thunks.slice(i, i + size));
+      i += size;
+    }
+  }
+  return groups;
 }
 
 // Between two anchors. Halfway from a walk to a pace is a stepping pace — a real
@@ -740,6 +763,15 @@ export class Horse {
   range(from, to) { return range(from, to); }
   forage(source, regrows) { return forage(source, regrows); }
   pile(key) { return pile(key); }
+
+  // Append-only, spatially addressed, left for whoever passes. A pile is added to,
+  // never replaced.
+  leaveTrace(p, value) {
+    if (!(p instanceof Pile)) {
+      throw new TypeError("only a pile can be left a trace");
+    }
+    return p.append(value);
+  }
 
   // `weather.cold` is read against *this* animal's lower critical temperature, so
   // the same weather is a different reading for a different individual — the same

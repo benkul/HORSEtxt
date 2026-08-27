@@ -294,7 +294,18 @@ halt         = "halt" , newline ;
 **A gait is a limb-phase vector.** Each limb has a point in the stride at which it
 strikes; limbs sharing a phase strike together. The six names below are *anchors* in that
 space, and the schedule is derived from the vector rather than written out per gait.
-Statements are assigned to limbs in order — LH, LF, RH, RF — and wrap around.
+
+**Statements fill the stride in the order the beats happen**, not by limb. A two-beat
+gait therefore runs two statements per beat, a canter runs one, then a pair, then one, and
+written order is always preserved. Assigning statement 0 to the left hind was the obvious
+reading and it was wrong: statements have an order, not a limb identity, so two statements
+in a trot landed on a hind and a fore of the same side — which strike at different times —
+and the canonical two-at-once gait ran them sequentially.
+
+A consequence worth stating rather than leaving as a surprise: **a `trot` and a `pace`
+schedule identically.** Both are two beats of two. Which limbs pair — diagonal against
+lateral — is anatomy, and statements have no limbs. The vectors, tempo and genotype gate
+still differ.
 
 | Gait | Beats | LH | LF | RH | RF | Duty | Schedules as |
 |---|---|---|---|---|---|---|---|
@@ -322,7 +333,10 @@ a **stepping pace** — slightly uneven, lateral, in a 1-2, 3-4 sequence — whi
 of the arithmetic instead of having to be listed. The runtime exposes this as
 `between(a, b, t)`; it has no surface syntax yet.
 
-**A lead mirrors the vector**: the far side is the near side with the pairs swapped.
+**A lead mirrors the vector** — the far side is the near side with its pairs swapped —
+but it does **not** change the schedule. Mirroring permutes which limb strikes when, not
+how many strike together, and statements have no limb to be led by. A lead is real
+anatomy that a program cannot feel.
 
 `canter`'s beats are genuinely unevenly spaced — its suspension runs twice as long as the
 intervals around it — so it is a different scheduler from `walk`, not a rename.
@@ -1043,6 +1057,29 @@ See §12g.3. `flight zone` and `pressure zone` described access control over dat
 flight zone is a property of the *animal*, sized by its handling history. The construct
 went, the point of balance stayed, and the model reunites in v0.3 where an individual has
 a history for the zone to be sized by.
+
+## 12i. Closed in v0.2.1 — found by porting a second production page
+
+Three defects, all found by writing one real program against v0.2.0 rather than by
+reading it. Two had been shipping since v0.1.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **Writing to a pile replaced it** | `STDLIB.md` has said "writing appends" since v0.1; the emitter emitted a plain assignment. So `passing becomes now` overwrote the pile with a number, `passing.count` read back `undefined`, and every derived figure was `NaN` — silently. Only the resolver knows a target is a pile, so it now marks the node | `H.leaveTrace`, and a pile is the only thing that can be left one |
+| **Storage was cached wrongly, twice** | The probe cached the `localStorage` *reference*, so a page that swapped it kept writing to the old one. Caching the *failure* instead then left storage permanently off after any throw — which in a plain Node process is always | Neither is cached. Access can throw and can come back empty, so both are simply tried each time |
+| **Two statements in a `trot` ran sequentially** | Statements were assigned to limbs by identity — statement 0 to the left hind — which put two of them on a hind and a fore of the *same side*, striking at different times. The canonical two-at-once gait therefore ran them one after the other, contradicting §5's own table | Statements fill the stride **in the order the beats happen**. See §5 |
+
+**A pile may now be read by position** (`marks`), which forage may not. The difference is
+where the order comes from: a pile's order is the order things happened, so reading a trail
+off it is the point, while forage's order is drawn and a position would make the draw
+reproducible.
+
+### Behaviour changed since v0.2.0
+
+The gait fix alters when statements run. A `trot` and a `pace` now pair two statements at a
+time for any count and schedule identically; a `canter` runs one, then a pair, then one; and
+a **lead no longer changes the schedule**, because mirroring permutes which limb strikes
+when rather than how many strike together, and statements have no limb to be led by.
 
 ## 13. Still open
 

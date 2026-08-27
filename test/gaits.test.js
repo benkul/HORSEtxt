@@ -89,18 +89,32 @@ T("the walk runs one statement at a time", async () => {
   eq(await order(new Horse({}), "walk"), [0, 1, 2, 3]);
 });
 
-T("the trot runs its diagonal pairs together", async () => {
+// Statements are filled into the stride in the order the beats happen, so a
+// two-beat gait runs them two at a time and their order is preserved.
+T("a two-beat gait runs two at a time", async () => {
   const seq = await order(new Horse({}), "trot");
-  eq(seq.slice(0, 2).sort(), [1, 2], "left fore and right hind struck together");
-  eq(seq.slice(2).sort(), [0, 3], "then right fore and left hind");
+  eq(seq.slice(0, 2).sort(), [0, 1], "the first beat takes the first two");
+  eq(seq.slice(2).sort(), [2, 3], "the second beat takes the rest");
 });
 
-T("the pace runs its lateral pairs together", async () => {
+T("two statements in a trot strike together", async () => {
+  // The obvious reading — statement 0 is the left hind — put two statements on a
+  // hind and a fore of the same side, which strike at different times. So the
+  // canonical two-at-once gait ran them sequentially.
+  const H = new Horse({});
+  const t0 = Date.now();
+  await H.gait("trot", [0, 1].map(() => async () => {
+    await new Promise((r) => setTimeout(r, 40));
+  }));
+  ok(Date.now() - t0 < 70, `expected one beat, took ${Date.now() - t0}ms`);
+});
+
+T("a trot and a pace schedule alike; the difference is anatomical", async () => {
   const H = new Horse({});
   H.genotype("AA", null);
-  const seq = await order(H, "pace");
-  eq(seq.slice(0, 2).sort(), [0, 1], "the near side");
-  eq(seq.slice(2).sort(), [2, 3], "then the off side");
+  eq(await order(H, "pace"), await order(H, "trot"), "two pairs either way");
+  // The vectors still differ, and so does which limbs pair.
+  ok(JSON.stringify(gaits.pace.phases) !== JSON.stringify(gaits.trot.phases));
 });
 
 T("the canter runs one, then a pair, then one", async () => {
@@ -114,20 +128,27 @@ T("back is a direction, not a phase relationship", async () => {
   eq(await order(new Horse({}), "back"), [3, 2, 1, 0]);
 });
 
-T("more statements than limbs wrap around the stride", async () => {
-  // Six statements on four limbs: 0 and 4 share a phase, 1 and 5 share the next.
-  // Within a group the order is whichever finishes first, so compare as sets.
-  const seq = await order(new Horse({}), "walk", 6);
-  eq(seq.length, 6);
-  eq(seq.slice(0, 2).sort(), [0, 4], "the fifth statement strikes with the first");
-  eq(seq.slice(2, 4).sort(), [1, 5], "and the sixth with the second");
-  eq(seq.slice(4), [2, 3], "the rest keep their own beats");
+T("more statements than the stride holds start it again", async () => {
+  // Six statements on a four-beat gait: the stride repeats its shape, and the
+  // order is preserved throughout.
+  eq(await order(new Horse({}), "walk", 6), [0, 1, 2, 3, 4, 5]);
 });
 
-T("a lead mirrors the vector", async () => {
+T("six statements in a trot make three pairs", async () => {
+  const seq = await order(new Horse({}), "trot", 6);
+  eq(seq.slice(0, 2).sort(), [0, 1]);
+  eq(seq.slice(2, 4).sort(), [2, 3]);
+  eq(seq.slice(4).sort(), [4, 5]);
+});
+
+// A lead is which foreleg reaches furthest forward. Mirroring permutes which limb
+// strikes when, but not how many strike together — and statements have no limb, so
+// the schedule is identical. The lead is real anatomy with no scheduling
+// consequence, which is worth stating rather than leaving as a surprise.
+T("a lead changes the vector but not the schedule", async () => {
   const near = await order(new Horse({}), "canter", 4, { lead: "right" });
   const far = await order(new Horse({}), "canter", 4, { lead: "left" });
-  ok(JSON.stringify(near) !== JSON.stringify(far), "the far side is not the near one");
+  eq(near, far, "statements have no limb to be led by");
 });
 
 // --------------------------------------------------------------- interpolation

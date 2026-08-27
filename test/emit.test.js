@@ -368,15 +368,14 @@ T("a gallop is four beats, not everything at once", async () => {
   eq(order, ["slow", "fast"], "separate beats, so it waits");
 });
 
-T("trot strikes in diagonal pairs, by limb and not by adjacency", async () => {
+T("a trot runs two at a time, in the order written", async () => {
   const H = new Horse({});
   const order = [];
   const mk = (n, ms) => () => new Promise((r) => setTimeout(() => { order.push(n); r(); }, ms));
-  // a,b,c,d take the limbs LH, LF, RH, RF. The diagonals are LF+RH and RF+LH —
-  // so b with c, and d with a. Grouping by adjacent index would pair a with b.
+  // Two beats, so two statements strike per beat, filled in written order.
   await H.gait("trot", [mk("a", 20), mk("b", 1), mk("c", 20), mk("d", 1)]);
-  eq(order.slice(0, 2).sort(), ["b", "c"], "left fore with right hind");
-  eq(order.slice(2).sort(), ["a", "d"], "then right fore with left hind");
+  eq(order.slice(0, 2).sort(), ["a", "b"], "the first beat");
+  eq(order.slice(2).sort(), ["c", "d"], "then the second");
 });
 
 T("back reverses", async () => {
@@ -576,6 +575,98 @@ T("a spook does not swallow a balk", async () => {
 });
 
 // -------------------------------------------------------------------- storage
+
+// A pile is append-only, so writing to one leaves a trace. This was documented in
+// STDLIB.md from v0.1 and emitted as a plain assignment, which replaced the pile
+// with whatever was written — so every count afterwards read back undefined.
+T("writing to a pile appends rather than replacing it", async () => {
+  const code = compile('band a\n    pile p at "k"\n    cue go\n        p becomes 1\n        release p.count\n');
+  ok(/H\.leaveTrace\(p, 1\)/.test(code), `expected an append, got:\n${code}`);
+  ok(!/^\s*p = 1;/m.test(code), "and not an assignment");
+});
+
+T("a pile that is written to still counts", async () => {
+  const src = [
+    "band a",
+    '    pile p at "count.test"',
+    "    lead mare go",
+    "        p becomes 1",
+    "        p becomes 2",
+    // `~p.count` reads the member; `~(p.count)` would call it, because
+    // parenthesising a lone path forces a zero-argument call.
+    "        ^ tension ~p.count ^",
+    "        release", "",
+  ].join("\n");
+  const seen = [];
+  const r = await exec(src, { onChord: (c) => seen.push(c) });
+  ok(!r.threw, r.threw && r.threw.message);
+  ok(seen[0].states[0].value >= 2, `expected at least two traces, got ${seen[0].states[0].value}`);
+});
+
+// A pile is ordered by when things happened, so it may be read by position. Forage
+// may not: its order is drawn, and a position would make the draw reproducible.
+T("a pile can be read by position; forage cannot", async () => {
+  const { pile, forage } = await import("../src/runtime.js");
+  const p = pile("marks.test");
+  p.append("first"); p.append("second"); p.append("third");
+  eq(p.marks[0], "first", "oldest first");
+  eq(p.marks[p.count - 1], "third", "and the newest last");
+  eq(p.graze, "third", "which is also the most recent mark");
+
+  const f = forage([1, 2, 3], false);
+  eq(f.marks, undefined, "forage has no marks to index");
+  eq(f.first, undefined);
+});
+
+T("the marks are a copy; a pile cannot be rewritten", async () => {
+  const { pile } = await import("../src/runtime.js");
+  const p = pile("copy.test");
+  p.append("a");
+  const got = p.marks;
+  got[0] = "rewritten";
+  eq(p.marks[0], "a", "what was left stays left");
+});
+
+T("a program can read a trail off a pile", async () => {
+  const src = [
+    "band a",
+    '    pile trail at "trail.test"',
+    "    lead mare go",
+    '        trail becomes "one"',
+    '        trail becomes "two"',
+    "        ^ voice ~0.1 ^",
+    "        release trail.marks[0]",
+    "",
+  ].join("\n");
+  const r = await exec(src);
+  ok(!r.threw, r.threw && r.threw.message);
+});
+
+T("only a pile can be left a trace", async () => {
+  const H = new Horse({});
+  let threw = false;
+  try { H.leaveTrace(7, "x"); } catch (e) { threw = /only a pile/.test(e.message); }
+  ok(threw);
+});
+
+// Caching the storage *reference* meant a page or a test that swapped localStorage
+// kept writing to the old one. Only whether it works is cached.
+T("a pile reads whichever storage is present now", async () => {
+  const { pile } = await import("../src/runtime.js");
+  const had = globalThis.localStorage;
+  const first = {}, second = {};
+  const fake = (d) => ({ getItem: (k) => d[k] ?? null, setItem: (k, v) => { d[k] = v; } });
+  try {
+    globalThis.localStorage = fake(first);
+    pile("swap.test").append("a");
+    globalThis.localStorage = fake(second);
+    pile("swap.test").append("b");
+    ok(first["swap.test"] !== undefined, "the first store was written");
+    ok(second["swap.test"] !== undefined, "and so was the second");
+  } finally {
+    if (had) globalThis.localStorage = had; else delete globalThis.localStorage;
+  }
+});
 
 T("a pile appends and survives a missing store", async () => {
   const { pile } = await import("../src/runtime.js");

@@ -50,13 +50,23 @@ A `pile` (§11) responds to:
 
 | Member | Yields | Notes |
 |---|---|---|
-| `count` | entries | |
+| `count` | marks left | |
 | `empty` | truth | |
-| `graze` | one entry, without removing it | reads; a pile is append-only |
+| `graze` | the most recent mark, without removing it | reads; a pile is append-only |
+| `marks` | every mark, oldest first | a copy, and indexable |
 
-Writing is `pile-name becomes value`, which appends. There is no delete. A pile survives
-sessions, which is how training persists, and it must read correctly when nothing is
-stored — private-mode storage failure is expected, not exceptional.
+Writing is `pile-name becomes value`, which **appends**. There is no delete.
+
+**A pile is ordered and may be read by position**, which forage may not. The difference is
+where the order comes from: a pile's order is the order things happened, so reading a trail
+off it is the whole point, while forage's order is *drawn* and exposing a position would
+make the draw reproducible. `trail.marks[0]` is the oldest mark;
+`trail.marks[trail.count - 1]` is the newest, and so is `trail.graze`.
+
+`graze trail as mark` walks every mark, oldest first.
+
+A pile survives sessions, which is how training persists, and it must read correctly when
+nothing is stored — private-mode storage failure is expected, not exceptional.
 
 ## Affect
 
