@@ -171,8 +171,65 @@ bachelor     = ( "bachelor" | "bachelors" ) , ident , newline , block ;
 block        = indent , { statement } , dedent ;
 ```
 
-A `band` warns above natural band size — one stallion, 2–4 mares, offspring — as a
-cohesion lint. `bachelor` is the test group.
+A `band` warns above natural band size — one stallion, two to four mares, offspring — as
+a cohesion lint. See §2.4 for what to do about it.
+
+## 2.4 Herds, and crossing between bands
+
+```
+mingles      = "mingles" , "with" , ident , newline ;
+```
+
+**A herd is a real level of organisation.** Horses live in a multilevel society: a drone
+survey of over a hundred feral horses found association rates that are *bimodal* — units
+(individuals staying within 15.5m of each other more than 70% of the time) nested inside a
+herd, with inter-unit distances significantly closer than chance. Behaviour synchronises
+not only within a unit but *between* units, and horses track the behaviour of individuals
+spatially far from them.
+
+**Boundaries are held by default, and particular pairs cross anyway.** Units become more
+circular and cohesive as another unit approaches, and elongate their shape to avoid
+crossing — while specific pairs of units cross and intermix regularly.
+
+So visibility inside a herd is **pairwise and declared**, not hierarchical:
+
+```
+herd site
+    band gallery
+        mingles with listening
+        forage deck of 1 through 438 regrows
+        cue draw ...
+
+    band listening
+        mingles with gallery
+        lead mare enter
+            release (draw)          # visible: both bands named the other
+
+    bachelors probes
+        lead mare check
+            release (draw)          # visible: the periphery sees in
+```
+
+- **Both sides must declare it.** A crossing is mutual, and one band's edit should not
+  silently widen another band's scope. Naming one side alone shares nothing and says
+  which side is missing.
+- **A herd holds bands and nothing else.** Crossing is only possible inside one; across
+  herds there is nothing, because separate groups avoid getting close to one another.
+- **Names are distinct across a herd.** Two bands are two sets of individuals, not two
+  namespaces.
+
+**A `bachelor` group stands on the periphery.** All-male units occupy the edge of a herd
+while large mixed-sex units hold the centre, and inter-unit coordination reaches the edge.
+So a bachelor group sees every band in its herd without declaring anything, and no band
+sees it — which is what a test group wants, and is the first mechanism behind a claim
+`bachelor` has carried since draft 1.
+
+**This is also the remedy for the band-size lint.** Before, the lint said split and the
+language gave no way to split without duplicating, because bands could not see each other
+at all.
+
+A name that exists in the herd but was not shared reports *that*, rather than reading as
+a misspelling.
 
 ---
 
@@ -621,8 +678,18 @@ as novel again, so changing an error's shape resets the count.
 `flood` compiles with a warning: flooding produces learned helplessness.
 
 `balk`, `leave`, and `blank` are **terminal successes, not errors**. `balk` declines this
-cue. `leave` ends the program having done nothing. `blank` is the explicit no-op, and
-inside a `graze` body it is the filter.
+cue. `leave` ends the program having done nothing. `blank` answers "no change" and leaves
+the cue — Mejdell's third symbol was a blank glyph the horse had to *press*, so the
+no-change answer is given rather than inferred from silence.
+
+**`blank` is not a skip.** Earlier drafts said it filtered a `graze`; it does not, because
+it leaves the cue rather than the iteration. Filtering a graze is a `when` around the work,
+which is how selective grazing reads anyway: the animal moves on rather than issuing a
+statement about moving on.
+
+**Inside a `hears` handler, an outcome stops at the handler.** A handler is not a cue, so
+`blank` there is the handler's answer to the signal and does not touch whichever cue
+emitted it.
 
 The **point of balance** at the shoulder is a directional operator: pressure behind it
 drives an animal forward, in front of it drives it back. In the language that is the
@@ -1080,6 +1147,34 @@ The gait fix alters when statements run. A `trot` and a `pace` now pair two stat
 time for any count and schedule identically; a `canter` runs one, then a pair, then one; and
 a **lead no longer changes the schedule**, because mirroring permutes which limb strikes
 when rather than how many strike together, and statements have no limb to be led by.
+
+## 12j. Herds became real — v0.2.2
+
+The band-size lint told you to split and the language gave you no way to split, because
+bands could not see each other at all. That was the same isolation that killed zones, and
+asking whether herds co-mingle turned out to have a precise answer.
+
+**They do, and it is documented.** A drone survey of a hundred-plus feral horses found
+association rates that are *bimodal*: units nested inside a herd, inter-unit distances
+closer than chance, and behaviour synchronising **between** units. Boundaries are held by
+default — units grow cohesive as another approaches and elongate to avoid crossing — while
+particular pairs cross and intermix regularly. And all-male units occupy the herd's
+periphery while large mixed-sex units hold the centre.
+
+So the mechanism was not a choice to be invented. See §2.4:
+
+- `mingles with` — pairwise, and **both bands must name the other**, because a crossing is
+  mutual and one band's edit should not silently widen another's scope
+- a herd holds bands and nothing else; across herds, nothing
+- names are distinct across a herd: two bands are two sets of individuals
+- **a `bachelor` group sees every band without declaring, and none sees it** — the
+  periphery, and the first mechanism behind a claim `bachelor` has carried since draft 1
+
+The 13-declaration band that prompted this splits into two bands that mingle, and the
+warning goes quiet without duplicating anything.
+
+**A name that exists in the herd but was not shared says so**, rather than reading as a
+misspelling — which was the one cost worth worrying about when the design was proposed.
 
 ## 13. Still open
 

@@ -181,7 +181,46 @@ class Emitter {
 
   // ----------------------------------------------------------------- declarations
 
+  // A herd emits one scope holding every band, because names are unique across a
+  // herd and the resolver has already decided who may name what. Lead mares are
+  // deferred until every band's declarations exist — a lead mare in one band may
+  // call into a band it mingles with, and that band may be declared below it.
+  s_Herd(node) {
+    const bands = node.body.filter((b) => b.type === "Group");
+    this.blank();
+    this.line(`// herd ${node.name}`);
+    this.line(`await (async () => {`);
+    this.indent(() => {
+      for (const b of bands) this.hoist(b.body);
+      const leads = [];
+      for (const b of bands) {
+        const prev = this.band;
+        this.band = b.name;
+        this.blank();
+        this.line(`// ${b.kind} ${b.name}`);
+        for (const s of b.body) {
+          if (s.type === "Mingles") {
+            this.line(`// mingles with ${s.other}`);
+            continue;
+          }
+          this.statement(s);
+        }
+        const lead = b.body.find((s) => s.type === "Cue" && s.lead);
+        if (lead) leads.push(lead.name);
+        this.band = prev;
+      }
+      if (leads.length) {
+        this.blank();
+        this.line(`// the lead mares, once every band is standing`);
+        for (const name of leads) this.line(`await H.call(${js(name)}, [], null);`);
+      }
+    });
+    this.line(`})();`);
+    this.blank();
+  }
+
   s_Group(node) {
+    if (node.kind === "herd") return this.s_Herd(node);
     this.blank();
     const prev = this.band;
     this.line(`// ${node.kind} ${node.name}`);
@@ -341,6 +380,11 @@ class Emitter {
   s_Rest(node) { this.line(`await H.rest(${node.deep});`); }
   s_Watch(node) { this.line(`H.watch(${this.expr(node.target)});`); }
 
+
+  // Emitted as a comment by the herd; the crossing itself is a compile-time fact.
+  s_Mingles(node) {
+    this.line(`// mingles with ${node.other}`);
+  }
 
   s_Chord(node) {
     this.line(`await ${this.chord(node)};`);

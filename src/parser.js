@@ -214,6 +214,15 @@ class Parser {
     if (t.type === T.KEYWORD) {
       const k = t.value;
       if (GROUP_KEYWORDS.has(k)) return this.parseGroup();
+      // A band names the sibling bands whose boundary it crosses. Units maintain
+      // their boundaries by default; particular pairs cross anyway (§2.4).
+      if (k === "mingles") {
+        const kw = this.next();
+        this.expectKw("with", "§2.4");
+        const other = this.expect(T.IDENT, undefined, "§2.4");
+        this.expect(T.NEWLINE, undefined, "§2.4");
+        return this.node("Mingles", kw, { other: other && other.value });
+      }
       if (k === "context") return this.parseContext();
       if (k === "lead" || k === "cue") return this.parseCue();
       if (k === "release") return this.parseRelease();

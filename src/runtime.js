@@ -402,7 +402,13 @@ export class Horse {
 
   balk(where) { throw new Balk(where); }
   leave(where) { throw new Leave(where); }
-  blank() { return undefined; } // stated, never implied
+  // Mejdell's third symbol was a blank glyph meaning "no change", and the horse had
+  // to press it: the no-change answer is *given*, not inferred from silence. So it
+  // is a terminal outcome like the others, and it leaves the cue.
+  //
+  // It was a plain no-op through v0.2.1, which made every `when ... blank` guard
+  // fall straight through while §3 and the resolver both listed it as a way out.
+  blank() { throw new Released(undefined); }
 
   // A halt inside a gait ends that gait, including a held one. Outside a gait there
   // is nothing to stop. This is the only way a program can end its own `every` loop:
@@ -489,7 +495,18 @@ export class Horse {
         const ctx = this.contexts[i];
         const handler = ctx.handlers[name];
         if (!handler) continue;
-        const result = await handler(value, carried);
+        // A handler is not a cue, so an outcome raised inside one stops here: its
+        // answer is the answer to this signal. Without this, a handler that blanked
+        // unwound past the handler and terminated whichever cue had emitted the
+        // signal — silently truncating the caller.
+        let result;
+        try {
+          result = await handler(value, carried);
+        } catch (e) {
+          if (e instanceof Released) result = e.value;
+          else if (e instanceof Balk) return { answered: true, by: ctx.name, refused: true, carried };
+          else throw e;
+        }
         return { answered: true, by: ctx.name, value: result, carried };
       }
       // Nobody answered. That is information, not a timeout.

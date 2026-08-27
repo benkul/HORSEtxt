@@ -42,6 +42,16 @@ class Scope {
     }
     return null;
   }
+
+  // Which band in this herd owns a name, if the enclosing band cannot see it.
+  homeOf(name) {
+    let s = this;
+    while (s) {
+      if (s.elsewhere) return s.elsewhere(name);
+      s = s.parent;
+    }
+    return null;
+  }
 }
 
 class Resolver {
@@ -102,21 +112,25 @@ class Resolver {
 
   // Declarations are hoisted within their block, so a cue may name one declared
   // later in the same band. The emitter hoists the same set with `let`.
-  block(list, scope) {
-    for (const s of list) {
-      const name = s.name;
-      if (!name) continue;
-      if (s.type === "Cue" || s.type === "Binding" || s.type === "Pile" ||
-          s.type === "Forage" || s.type === "Group") {
-        const existing = scope.own(name);
-        if (existing) {
-          this.fail(s, `${JSON.stringify(name)} is declared twice in this scope`);
+  // `predeclared` is set for a band of a herd, whose declarations were collected
+  // before the crossings could be wired.
+  block(list, scope, predeclared = false) {
+    if (!predeclared) {
+      for (const s of list) {
+        const name = s.name;
+        if (!name) continue;
+        if (s.type === "Cue" || s.type === "Binding" || s.type === "Pile" ||
+            s.type === "Forage" || s.type === "Group") {
+          const existing = scope.own(name);
+          if (existing) {
+            this.fail(s, `${JSON.stringify(name)} is declared twice in this scope`);
+          }
+          scope.declare(name, {
+            kind: s.type === "Cue" ? "cue" : s.type.toLowerCase(),
+            arity: s.type === "Cue" ? s.params.length : null,
+            node: s,
+          });
         }
-        scope.declare(name, {
-          kind: s.type === "Cue" ? "cue" : s.type.toLowerCase(),
-          arity: s.type === "Cue" ? s.params.length : null,
-          node: s,
-        });
       }
     }
 
@@ -138,11 +152,145 @@ class Resolver {
     }
   }
 
+  // -------------------------------------------------------------------- herds
+  //
+  // Units nested in a herd, which is what the drone survey found: association
+  // rates are bimodal, and inter-unit distances are closer than chance. Units
+  // hold their boundaries — becoming more cohesive as another approaches, and
+  // elongating to avoid crossing — while particular pairs cross anyway.
+  //
+  // So visibility inside a herd is pairwise and declared, not hierarchical, and
+  // both sides must declare it: a crossing is mutual, and one band's edit should
+  // not silently widen another band's scope.
+  //
+  // Names are unique across a herd. Two bands in one herd are two sets of
+  // individuals, not two namespaces.
+  herd(node, outer) {
+    const scope = new Scope(outer, "herd");
+    const bands = node.body.filter((b) => b.type === "Group");
+
+    for (const s of node.body) {
+      if (s.type !== "Group") {
+        this.fail(s, "a herd holds bands, and nothing else", "GRAMMAR.md §2.4");
+      }
+    }
+
+    // What each band declares, and who it says it crosses to.
+    const declared = new Map();
+    const crossings = new Map();
+    for (const b of bands) {
+      if (declared.has(b.name)) {
+        this.fail(b, `${JSON.stringify(b.name)} is declared twice in this herd`);
+      }
+      declared.set(b.name, new Map());
+      const mine = b.body.filter((s) => s.type === "Mingles");
+      for (const s of mine) s.inHerd = true; // consumed here, not a statement
+      crossings.set(b.name, new Set(mine.map((s) => s.other)));
+    }
+
+    // Collect declarations per band, and refuse a name used by two bands: they
+    // are distinct individuals, and the herd is where they are counted.
+    const owner = new Map();
+    for (const b of bands) {
+      const size = b.body.filter((d) => d.type === "Cue" || d.type === "Group").length;
+      if (b.kind === "band" && size > NATURAL_BAND) {
+        this.warn(
+          b,
+          `band ${b.name} holds ${size} declarations; a band is one stallion, ` +
+          `two to four mares, and their offspring. bands of a herd that name each ` +
+          `other with \`mingles with\` can share the work`,
+          "IFCE, social organisation in herds of horses",
+        );
+      }
+      for (const d of b.body) {
+        if (!d.name) continue;
+        if (!["Cue", "Binding", "Pile", "Forage", "Group"].includes(d.type)) continue;
+        if (owner.has(d.name)) {
+          this.fail(
+            d,
+            `${JSON.stringify(d.name)} is declared in band ${owner.get(d.name)} as ` +
+            `well; names are distinct across a herd`,
+            "GRAMMAR.md §2.4",
+          );
+          continue;
+        }
+        owner.set(d.name, b.name);
+        declared.get(b.name).set(d.name, {
+          kind: d.type === "Cue" ? "cue" : d.type.toLowerCase(),
+          arity: d.type === "Cue" ? d.params.length : null,
+          node: d,
+        });
+      }
+    }
+
+    // Wire the crossings. A crossing both sides declare opens both ways; one side
+    // alone opens nothing, and says which side is missing.
+    for (const b of bands) {
+      const mine = crossings.get(b.name);
+      for (const other of mine) {
+        if (!declared.has(other)) {
+          this.fail(node, `band ${JSON.stringify(other)} is not in this herd`, "GRAMMAR.md §2.4");
+          continue;
+        }
+        if (other === b.name) {
+          this.fail(node, `band ${b.name} cannot mingle with itself`, "GRAMMAR.md §2.4");
+          continue;
+        }
+        if (!crossings.get(other).has(b.name)) {
+          this.fail(
+            node,
+            `${b.name} mingles with ${other}, but ${other} does not mingle with ` +
+            `${b.name}. a crossing is mutual, so both bands must name the other`,
+            "GRAMMAR.md §2.4",
+          );
+        }
+      }
+    }
+
+    // Build each band's scope: its own declarations, plus those of any band it
+    // mutually crosses to. A bachelor group stands on the periphery of the herd —
+    // all-male units occupy the edge, and coordination reaches them — so it sees
+    // every band without declaring, and no band sees it.
+    const scopes = new Map();
+    for (const b of bands) {
+      const bs = new Scope(scope, b.kind);
+      for (const [name, info] of declared.get(b.name)) bs.declare(name, info);
+
+      const peripheral = b.kind === "bachelor";
+      for (const other of bands) {
+        if (other.name === b.name) continue;
+        const mutual = crossings.get(b.name).has(other.name) &&
+                       crossings.get(other.name).has(b.name);
+        if (!peripheral && !mutual) continue;
+        if (peripheral && other.kind === "bachelor") continue;
+        for (const [name, info] of declared.get(other.name)) {
+          bs.declare(name, { ...info, fromBand: other.name });
+        }
+      }
+      scopes.set(b.name, bs);
+    }
+
+    // A name that exists in the herd but was not shared should say so, rather
+    // than reading as a typo.
+    for (const b of bands) {
+      scopes.get(b.name).elsewhere = (name) => {
+        const home = owner.get(name);
+        return home && home !== b.name ? home : null;
+      };
+    }
+
+    for (const b of bands) this.block(b.body, scopes.get(b.name), true);
+  }
+
   // ---------------------------------------------------------------- statements
 
   statement(s, scope) {
     switch (s.type) {
-      case "Group": {
+      // A herd is a real level of organisation, not a filing convenience: units
+      // associate to form one, inter-unit distances are closer than chance, and
+      // behaviour synchronises *between* units. So bands in a herd may see each
+      // other — but only the pairs that say so.
+      case "Group": if (s.kind === "herd") return this.herd(s, scope); else {
         const inner = new Scope(scope, "group");
         const declared = s.body.filter(
           (d) => d.type === "Cue" || d.type === "Group",
@@ -177,6 +325,17 @@ class Resolver {
         }
         return;
       }
+
+      // Wired by `herd`. Outside one there is no sibling band to cross to.
+      case "Mingles":
+        if (!s.inHerd) {
+          this.fail(
+            s,
+            "`mingles with` only means something between bands of one herd",
+            "GRAMMAR.md §2.4",
+          );
+        }
+        return;
 
       case "Binding":
         this.expr(s.value, scope);
@@ -403,7 +562,19 @@ class Resolver {
       case "Name": {
         const info = scope.lookup(e.name);
         if (!info) {
-          this.fail(e, `${JSON.stringify(e.name)} is not declared in this scope`);
+          // If it exists elsewhere in the herd, the problem is that no crossing
+          // was declared — which reads as a typo unless it is said.
+          const home = scope.homeOf(e.name);
+          if (home) {
+            this.fail(
+              e,
+              `${JSON.stringify(e.name)} belongs to band ${home}, which this band ` +
+              `does not mingle with. both bands must name the other`,
+              "GRAMMAR.md §2.4",
+            );
+          } else {
+            this.fail(e, `${JSON.stringify(e.name)} is not declared in this scope`);
+          }
         }
         return;
       }

@@ -266,6 +266,42 @@ https://equipedia.ifce.fr/en/equipedia-the-universe-of-the-horse-ifce/health-and
 Why the alpha-stallion framing is wrong and `lead mare` is the entry point.
 https://www.eurodressage.com/2018/12/27/usemisuse-leadership-and-dominance-concepts-horse-training
 
+### `herd`, `mingles with`, and the periphery
+
+**Maeda, Ochi, Ringhofer, Sosa, Sueur, Yamanashi & Hirata (2021). Aerial drone
+observations identified a multilevel society in feral horses.** *Scientific Reports* 11:
+71.
+Why a herd is a real level of organisation and not a filing convenience. Association
+rates among a hundred-plus feral horses are **bimodal**: units — individuals staying
+within **15.5m** of each other more than **70%** of the time — nested inside a herd, with
+inter-unit distances significantly closer than chance. Also the periphery: large mixed-sex
+units hold the centre while small units and **all-male units occupy the edge**, which is
+why a `bachelor` group sees in without declaring.
+https://www.nature.com/articles/s41598-020-79790-1
+
+**Maeda, Sueur, Hirata & Yamamoto (2021). Behavioural synchronization in a multilevel
+society of feral horses.** *PLOS ONE* 16(10): e0258944.
+Coordination is not confined to a unit: behaviour synchronises **between** units, and
+horses track individuals spatially far from them. A herd is therefore a scope, not a
+container.
+https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0258944
+
+**Spatial strategies in non-territorial societies: how feral horses maintain boundaries
+with other groups.** *Proceedings of the Royal Society B* 293(2063).
+Why crossing is **pairwise and declared** rather than hierarchical. Units become more
+circular and cohesive as another approaches and elongate to avoid crossing — while
+particular pairs of units cross boundaries and intermix regularly. Boundaries are the
+default; a named crossing is the exception.
+https://royalsocietypublishing.org/rspb/article/293/2063/20252468/479648/Spatial-strategies-in-non-territorial-societies
+
+**Causes of natal dispersal and emigration and their effects on harem formation in Misaki
+feral horses (2004).** *Applied Animal Behaviour Science*.
+Almost all young males leave the natal band between one and four years old, average 2.3,
+often by eviction, and join a bachelor group; young females disperse too, preferring bands
+with familiar females and no familiar males. Not yet a language mechanism — recorded
+because moving an individual between bands is the obvious next question after crossing.
+https://pubmed.ncbi.nlm.nih.gov/15338905/
+
 ---
 
 ## `sentinel`, `rest`, `recumbent`

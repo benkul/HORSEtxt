@@ -35,7 +35,8 @@ export const T = {
 // members reached through `weather.`, so reserving them would cost every program the
 // use of `wind` and `sun` as names for nothing.
 const KEYWORDS = new Set([
-  "genotype", "band", "herd", "bachelor", "bachelors", "context", "cue",
+  "genotype", "band", "herd", "bachelor", "bachelors", "mingles", "with",
+  "context", "cue",
   "release", "lead", "mare",
   "walk", "trot", "pace", "canter", "gallop", "tolt", "halt", "stand", "back",
   "graze", "forage", "regrows", "recognise", "weather", "chance", "hands", "new",

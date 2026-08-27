@@ -149,6 +149,55 @@ T("hyphenated names survive into JavaScript", async () => {
 
 // ------------------------------------------------------------- terminal outcomes
 
+// Mejdell's third symbol was a blank glyph the horse had to press: the no-change
+// answer is given, not inferred. So `blank` leaves the cue. It was a plain no-op
+// through v0.2.1, which made every `when ... blank` guard fall straight through
+// while §3 and the resolver both listed it as a way out.
+T("blank leaves the cue", async () => {
+  const src = [
+    "band a",
+    "    cue guard bad",
+    "        when bad",
+    "            blank",
+    "        ^ ears forward ^",
+    "        release 1",
+    "    lead mare go",
+    "        remember stopped as guard 1",
+    "        remember went as guard 0",
+    "        release", "",
+  ].join("\n");
+  const seen = [];
+  const r = await exec(src, { onChord: (p) => seen.push(p) });
+  ok(!r.threw, r.threw && r.threw.message);
+  eq(seen.length, 1, "the guarded call stopped; the unguarded one carried on");
+});
+
+// A handler is not a cue. An outcome raised inside one is its answer to the signal
+// and must not unwind into whichever cue emitted it.
+T("an outcome in a handler stops at the handler", async () => {
+  const src = [
+    "band a",
+    "    lead mare go",
+    "        context room",
+    "            hears snort",
+    "                blank",
+    "        snort",
+    "        ^ ears forward ^",
+    "        release", "",
+  ].join("\n");
+  const seen = [];
+  const r = await exec(src, { onChord: (p) => seen.push(p) });
+  ok(!r.threw, r.threw && r.threw.message);
+  eq(seen.length, 1, "the chord after the snort still ran");
+});
+
+T("a handler that balks is answered, not an error", async () => {
+  const H = new Horse({});
+  H.pushContext("room", { snort: async () => { H.balk("no"); } });
+  const r = await H.signal("snort", null, { line: 1 });
+  eq([r.answered, r.by, r.refused], [true, "room", true]);
+});
+
 T("balk is a refusal, not an error", async () => {
   const src = [
     "band a",
