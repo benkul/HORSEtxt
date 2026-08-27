@@ -128,7 +128,7 @@ spook flood habituates shy balk leave blank
 remember becomes pile when otherwise through empty
 whinny nicker squeal snort flehmen
 sentinel rotates rest recumbent watch hears
-flight pressure zone from the left right on every within as at of
+from the left right behind front on every within as at of
 ```
 
 `tolt` is spelled without the diaeresis. `tölt` would be non-ASCII (§1.1). `recognise` is
@@ -291,14 +291,38 @@ side         = "left" | "right" ;
 halt         = "halt" , newline ;
 ```
 
-| Gait | Beats | Footfall | Rhythm | Schedules as |
-|---|---|---|---|---|
-| `walk` | 4 | LH, LF, RH, RF | isochronous, ~0.301s | sequential |
-| `trot` | 2 | LF+RH, then RF+LH, suspension | isochronous, ~0.352s | diagonal pairs, parallel |
-| `pace` | 2 | LF+LH, then RF+RH | isochronous | lateral pairs, parallel |
-| `canter` | 3 | LH, then RH+LF, then RF (right lead) | uneven — 1:1, 1:2, 2:1 | one pair, two singles, with a lead |
-| `gallop` | 4 | LH, RH, LF, RF | 4 beats + suspension | full fan-out |
-| `tolt` | 4 | as the walk, faster, no suspension | even 1-2-3-4 | loop; at least one hoof always down |
+**A gait is a limb-phase vector.** Each limb has a point in the stride at which it
+strikes; limbs sharing a phase strike together. The six names below are *anchors* in that
+space, and the schedule is derived from the vector rather than written out per gait.
+Statements are assigned to limbs in order — LH, LF, RH, RF — and wrap around.
+
+| Gait | Beats | LH | LF | RH | RF | Duty | Schedules as |
+|---|---|---|---|---|---|---|---|
+| `walk` | 4 | 0 | .25 | .50 | .75 | .60 | one at a time, evenly spaced |
+| `tolt` | 4 | 0 | .25 | .50 | .75 | .70 | as the walk, but no suspension |
+| `trot` | 2 | .50 | 0 | 0 | .50 | .40 | diagonal pairs: LF+RH, then RF+LH |
+| `pace` | 2 | 0 | 0 | .50 | .50 | .40 | lateral pairs: the near side, then the off |
+| `canter` | 3 | 0 | .25 | .25 | .50 | .35 | one, then a pair, then one |
+| `gallop` | 4 | 0 | .40 | .20 | .60 | .30 | four separate beats |
+
+`canter`'s beats are genuinely unevenly spaced — its suspension runs twice as long as the
+intervals around it — so it is a different scheduler from `walk`, not a rename.
+
+**`duty` is how long a hoof stays down**, and it is the entire difference between a walk
+and a tolt: their phase vectors are identical. Above 0.25 in a four-beat gait at least one
+hoof is always down, so a held tolt has no gap between strides.
+
+**A gallop is not full fan-out.** Drafts 1–8 scheduled it as "everything at once", which
+is not a gait — a moving horse never has four hooves down together. It is four separate
+beats and then suspension. No gait runs four statements concurrently, and none should.
+
+**Between two anchors is a gait.** Because the schedule comes from the vector,
+interpolating gives real gaits rather than nonsense: halfway from a `walk` to a `pace` is
+a **stepping pace** — slightly uneven, lateral, in a 1-2, 3-4 sequence — which falls out
+of the arithmetic instead of having to be listed. The runtime exposes this as
+`between(a, b, t)`; it has no surface syntax yet.
+
+**A lead mirrors the vector**: the far side is the near side with the pairs swapped.
 
 `canter`'s beats are genuinely unevenly spaced — its suspension runs twice as long as the
 intervals around it — so it is a different scheduler from `walk`, not a rename.
@@ -458,9 +482,38 @@ the autocorrelation, and the individual conditioning. **The shape is fixed now**
 a runtime change and not a syntax change — §7.6 means there is no migration culture here,
 so a later rename would break every program with no ecosystem able to fix it.
 
-**The three are deliberately different constructs.** `forage` depletes, `recognise` is
-stable, `weather` is read. Silently substituting one for another is the kind of bug that
-surfaces much later, so the grammar makes it impossible rather than discouraged.
+### 6.5 `chance` — a fresh draw
+
+```
+chance       = "chance" ;
+```
+
+A fresh independent value in 0..1. Plain, per principle zero: a coin flip has no equine
+analogue.
+
+**`chance` and `weather` are not the same thing, and merging them was a mistake.** In
+drafts 6 and 7 `weather` replaced `chance` on the reasoning that weather is the
+uncontrolled condition a horse actually reads. That reasoning is sound *about weather* —
+and implementing it properly proved it is not a random source. Weather is slow, shared
+and correlated: read it three times in an instant and it gives one answer, because a
+front does not turn over between two lines of a program. A weighted gate needs three
+different answers.
+
+The program that exposed it gated three audio channels on `weather.wet > 0.5` and made
+all three fall silent together, when the whole point was that each declines
+independently.
+
+**Four constructs, three of them ways of not knowing:**
+
+| | |
+|---|---|
+| `forage` | depletes — a draw without replacement, order not chosen and not recorded |
+| `recognise` | stable — the same input recognised the same way, for years |
+| `chance` | fresh — an independent draw, every time |
+| `weather` | **read** — a condition, not a draw. Shared, slow, correlated |
+
+Requirements §2.5 forbids silently substituting one for another, and the grammar makes it
+impossible rather than discouraged.
 
 ---
 
@@ -544,7 +597,6 @@ shy          = "shy" , newline ;
 balk         = "balk" , newline ;
 leave        = "leave" , newline ;
 blank        = "blank" , newline ;
-zone         = ( "flight" | "pressure" ) , "zone" , newline , block ;
 lateral_mod  = "from" , "the" , side ;
 ```
 
@@ -558,10 +610,13 @@ as novel again, so changing an error's shape resets the count.
 cue. `leave` ends the program having done nothing. `blank` is the explicit no-op, and
 inside a `graze` body it is the filter.
 
-`flight zone` — approach and it moves away. Private. `pressure zone` — it turns to face
-you but does not move. Protected. Unmarked — public. The **point of balance** at the
-shoulder is a directional operator: pressure behind it drives forward, in front of it
-drives back.
+The **point of balance** at the shoulder is a directional operator: pressure behind it
+drives an animal forward, in front of it drives it back. In the language that is the
+direction a `graze` traverses — `from behind` forward, `from the front` reversed (§6.1).
+
+It is one third of a model, not a modifier on iteration. Flight zone, pressure zone and
+the point of balance are Grandin's one system for moving an animal that would rather you
+did not, and the other two wait for v0.3 — see §12g.3.
 
 **Laterality attaches to three forms** — calls, chords, and `flehmen` — because all three
 are acts of perception or expression, and those have a side. It is otherwise ambient: the
@@ -577,7 +632,7 @@ operation behaves differently by which side it is approached from.**
 ```
 statement    = chord | gait | stand | graze | cue | release | binding | assignment
              | pile | forage | conditional | spook | flood | shy | balk | leave
-             | blank | emission | context | zone | sentinel | rest | watch
+             | blank | emission | context | sentinel | rest | watch
              | expression_stmt ;
 
 binding      = "remember" , ident , "as" , expression , newline ;
@@ -847,6 +902,147 @@ JavaScript said `if (!isFullMoon()) return;` and the HORSEtxt says `leave` — a
 success, twenty-seven nights in twenty-nine. The storage read that might throw says
 `spook … habituates after 1` instead of a bare `catch {}`. Whether that is worth three
 times the lines is a judgement, and it should be made per mechanism rather than assumed.
+
+## 12g. The perception model (v0.2)
+
+Laterality has been threaded through calls, chords and `flehmen` since v0.1, and has
+been consequential in exactly one of them. It only becomes consequential if *perceiving*
+is an act with limits — which is what this section settles.
+
+**The risk here is invention.** Values do not have positions in a 350° field. Building a
+spatial model so that "blind spot" has something to mean would be precisely the failure
+§0 forbids: a rule that cannot be traced to a citation is not foreign, it is bad. So some
+of the body's limits map and some do not, and the ones that do not are declined below
+rather than forced.
+
+### 12g.1 What perception applies to
+
+**Only to what is perceived.** A value that crossed in from outside — through `hands`,
+carried by a signal, or handed over by a `graze` — is a thing in the world. A number you
+computed is not perceived, it is held, and nothing about eyes applies to it.
+
+### 12g.2 Adopted
+
+**Laterality decides what a look yields.** The left eye feeds the right hemisphere, which
+handles novelty, threat, predator detection and escape; the right eye feeds the left,
+which does analytical categorisation. So the side is not decoration on the same
+operation — it selects *which question you asked*:
+
+- `flehmen x from the left` — is this new, is this a threat. Raises `novel` for anything
+  this animal has not met.
+- `flehmen x from the right` — what kind of thing is this. Yields a category.
+
+Unstated, the ambient side decides, and the ambient side comes from the individual's bias
+and shifts with the enclosing block, because sensory laterality shifts faster and more
+situationally than motor laterality.
+
+**Flehmen requires attention.** An animal with both ears flattened is agonistic and is
+not attending, and a horse's attention is read from eyes *and* ears together. So a chord
+that closes agonistic cannot route anything for finer analysis: `flehmen` inside it
+balks. The two mechanisms were already in the language and were not connected.
+
+**A cue cannot flehmen its own parameters.** A horse cannot see its own muzzle: what it
+is holding is exactly what it cannot look at. What was handed to you is at your muzzle.
+You may use it, pass it, read a member of it — you may not route it for analysis. To
+inspect it, let it go and meet it again.
+
+**The point of balance gives direction.** Pressure behind the shoulder drives an animal
+forward; in front of it, backward. So `graze xs from behind` traverses forward and
+`graze xs from the front` traverses in reverse.
+
+**The point of balance gives a `graze` its direction**, and that is all of the approach
+model that lands here. The rest of it is §12g.3.
+
+### 12g.3 Removed: the zone construct
+
+`flight zone` and `pressure zone` wrapped a block of declarations and were described as
+graded access control — approach a binding from outside its band and it moves away. The
+construct is **removed**, and not because it was unenforceable.
+
+It described something horses do not have.
+
+**A flight zone is a property of the animal, not of its data.** Grandin is explicit: it
+is the animal's personal space, and *its size is determined by the wildness or tameness
+of the animal* — animals handled often have smaller flight zones than those with little
+contact with people. It is a radius around a horse, not a fence around a possession. The
+block form was the human-engineer reading: it pattern-matched `private` and built scope.
+
+Read correctly, the three parts are **one system** — the geometry of being approached:
+
+| | |
+|---|---|
+| flight zone | get this close and the animal leaves. A cue that declines when reached for |
+| pressure zone | it turns to face you but does not move. The call registers; the thing does not happen |
+| point of balance | where you stand decides which way it goes |
+
+They were split across three unrelated features, and the point of balance shipped alone
+on `graze` without anyone noticing it was a third of a mechanism.
+
+**They wait for v0.3**, because the size of a flight zone is set by handling history —
+which is trials-to-criterion arriving from the other direction. An animal handled often
+lets you close; an unhandled one keeps its distance and turns to face you. Those inputs
+do not exist until the individual has a history, so nothing about the model is
+implementable now.
+
+*(The parser never had a `parseZone`, so no program could contain a zone and nothing
+breaks by removing it. That absence is why a documented, resolver-aware,
+emitter-aware construct sat dead from v0.1 until someone tried to write one.)*
+
+### 12g.4 Declined, and why
+
+**Binocular depth splitting `=`.** The temptation was to make structural comparison
+require the narrow forward cone, so `=` is deep when facing and shallow otherwise. There
+is no honest route from "65° of binocular field" to "deep versus shallow equality"
+without giving values positions, and an `=` that is sometimes deep is unpredictable
+rather than foreign. A reader could not derive it, only memorise it. Declined.
+
+**Requiring `flehmen` for ordinary member access.** §2.6.2(d) says there is no direct
+deep inspection, and taken literally that would mean `link.getAttribute` needs routing
+first. Applied to the first real conversion it would have roughly doubled a page of
+straightforward DOM work for nothing. **"Deep read" is therefore narrowed to novelty and
+category** — the two things the hemispheres actually specialise in. Reading a named
+member of something you already have is eating food you already recognise.
+
+**Dichromacy.** 428nm and 539nm are a constraint on what a host should *render*, not on
+what the language should compute. It stays advisory, in the bibliography.
+
+## 12h. Closed in v0.2 — the body and its limits
+
+Weather became a system, laterality became consequential, and gaits became what §5 had
+been calling them since draft 1. Five defects surfaced, three of them in claims the
+documentation had been making for several drafts.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **`weather` could not be the random source** | Implementing it faithfully proved it: weather is slow, shared and correlated, so three reads in an instant give one answer. A program gating three audio channels on `weather.wet` silenced all of them together | `chance` restored as a fresh draw (§6.5). Four constructs, three of them ways of not knowing |
+| **`flies` was unreachable** | Multiplying four sub-unit factors crushed the largest behavioural driver of the five to a maximum of **0.07 across a whole year** | Suppression rather than exclusion. It now peaks in July and is zero all winter |
+| **Air temperature sat at freezing year-round** | Averaging two noise signals narrows the distribution toward its middle, so every warm-weather reading downstream was stuck at zero | The year is a real cycle, not noise. Seasons are deterministic |
+| **Novelty keyed on the wrong thing** | `flehmen` reused `shape()`, which keys *error* habituation on a value's kind — so every string was one stimulus and meeting one counted as meeting all of them | A separate `trace()`: a thing you can hold is identified by what it is, a thing with parts by its parts. Which is also why a familiar object rotated reads as novel |
+| **`gait()` never forwarded its options** | `lead` and a supplied vector were accepted and then dropped, so a canter on the far side was identical to one on the near side | Options reach the stride |
+
+### The gait schedules were wrong
+
+Representing a gait as a phase vector rather than a switch case exposed two schedules
+that had been wrong since v0.1 and that nothing could have caught while the answer was
+hand-written:
+
+- **A gallop is not full fan-out.** It ran every statement at once. A moving horse never
+  has four hooves down together; a gallop is four separate beats and then suspension. No
+  gait runs four statements concurrently, and none should.
+- **A trot was pairing by adjacency, not diagonally.** The helper grouped statements
+  `(0,1)` and `(2,3)`. The diagonals are LF+RH and RF+LH — statements `(1,2)` and
+  `(3,0)`. It had been calling itself a diagonal pairing while doing something else.
+
+The payoff for the representation is that interpolation yields real gaits: halfway from a
+walk to a pace comes out as a **stepping pace**, uneven and lateral in a 1-2, 3-4
+sequence, from the arithmetic rather than from a table.
+
+### Zones were removed
+
+See §12g.3. `flight zone` and `pressure zone` described access control over data; a
+flight zone is a property of the *animal*, sized by its handling history. The construct
+went, the point of balance stayed, and the model reunites in v0.3 where an individual has
+a history for the zone to be sized by.
 
 ## 13. Still open
 

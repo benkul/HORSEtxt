@@ -29,6 +29,7 @@ class Emitter {
     this.depth = 0;
     this.band = null;
     this.cue = null;
+    this.params = [];
   }
 
   line(text) {
@@ -158,6 +159,7 @@ class Emitter {
       sub.depth = this.depth + 1;
       sub.band = this.band;
       sub.cue = this.cue;
+      sub.params = this.params;
       sub.statement(s);
       parts.push({ body: sub.out.join("\n") });
     }
@@ -205,7 +207,9 @@ class Emitter {
   s_Cue(node) {
     const params = node.params.map(js);
     const prev = this.cue;
+    const prevParams = this.params;
     this.cue = node.name;
+    this.params = node.params;
     this.blank();
     this.line(
       `${js(node.name)} = H.cue(${JSON.stringify(node.name)}, ${JSON.stringify(node.params)}, ` +
@@ -214,6 +218,7 @@ class Emitter {
     this.indent(() => this.statements(node.body));
     this.line(`}, { lead: ${node.lead} });`);
     this.cue = prev;
+    this.params = prevParams;
     this.blank();
   }
 
@@ -294,9 +299,10 @@ class Emitter {
 
   s_Graze(node) {
     const bindName = node.as ? js(node.as) : "_item";
+    const driven = node.driven ? `, ${JSON.stringify(node.driven)}` : "";
     this.line(`await H.graze(${this.expr(node.source)}, async (${bindName}) => {`);
     this.indent(() => this.statements(node.body));
-    this.line(`});`);
+    this.line(`}${driven});`);
   }
 
   // Spook and Flood are emitted by `statements`, which hands them the rest of the
@@ -330,11 +336,6 @@ class Emitter {
   s_Rest(node) { this.line(`await H.rest(${node.deep});`); }
   s_Watch(node) { this.line(`H.watch(${this.expr(node.target)});`); }
 
-  s_Zone(node) {
-    this.line(`await H.zone(${JSON.stringify(node.kind)}, async () => {`);
-    this.indent(() => this.statements(node.body));
-    this.line(`});`);
-  }
 
   s_Chord(node) {
     this.line(`await ${this.chord(node)};`);
@@ -385,10 +386,14 @@ class Emitter {
   e_Range(n) { return `H.range(${this.expr(n.from)}, ${this.expr(n.to)})`; }
   e_List(n) { return `[${n.items.map((i) => this.expr(i)).join(", ")}]`; }
   e_Weather(n) { return `H.weather(${JSON.stringify(n.condition)})`; }
+  e_Chance(n) { return `H.chance()`; }
   e_Recognise(n) { return `H.recognise(${this.expr(n.value)})`; }
 
+  // The enclosing cue's parameters travel with the call: they are what this animal
+  // is holding, and a horse cannot see its own muzzle (GRAMMAR.md §12g).
   e_Flehmen(n) {
-    return `(await H.flehmen(${this.expr(n.value)}, ${side(n.lateral)}))`;
+    const held = this.params.length ? `[${this.params.map(js).join(", ")}]` : "[]";
+    return `(await H.flehmen(${this.expr(n.value)}, ${side(n.lateral)}, ${held}))`;
   }
 
   // Plain JavaScript construction, and deliberately not awaited: a constructor is

@@ -19,8 +19,11 @@ band listening
 
     # a channel that declines is a channel that declined.
     # there is nothing to handle and nothing to report.
+    #
+    # `chance`, not `weather`: each channel decides independently. weather is a
+    # shared condition, so gating on it would silence all three together or none.
     cue open side
-        when weather.wet > 0.5
+        when chance > 0.5
             leave
         release sound tracks.graze side
 

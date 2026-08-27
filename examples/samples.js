@@ -22,8 +22,11 @@ band exposure
 
     # a channel that declines is a channel that declined.
     # there is nothing to handle and nothing to report.
+    #
+    # \`chance\` is a fresh draw. \`weather\` is a shared condition, and gives the
+    # same answer to everyone reading it at the same moment.
     lead mare open
-        when weather.wet > 0.5
+        when chance > 0.5
             leave
         ^ ears forward   voice ~0.4:~0.6 ^
         release`,
@@ -51,6 +54,44 @@ band exposure
         _ ears back   nostrils AD38 _
         snort
         release`,
+
+  "which eye you look with": `@ juniper  left bias
+
+band looking
+
+    # the left eye feeds the right hemisphere: novelty, threat, escape.
+    # the right eye feeds the left: analytical categorisation.
+    #
+    # so the side is not decoration on one operation. it selects which question
+    # was asked, and you get back a different kind of answer.
+    lead mare inspect
+        context field
+            hears novel
+                ^ ears forward   nostrils AD38   tension ~0.6 ^
+
+        # is this new? a truth.
+        remember strange as flehmen "a gate" from the left
+
+        # what kind of thing is it? a category.
+        remember kind as flehmen [1 2 3] from the right
+
+        # met once, it is no longer new.
+        remember again as flehmen "a gate" from the left
+
+        ^ ears forward   head ~0.2 ^
+        release kind`,
+
+  "the muzzle": `band holding
+
+    # a horse cannot see its own muzzle. what was handed to you is exactly what
+    # you cannot look at, so this cue balks and the caller carries on.
+    cue examine thing
+        release flehmen thing
+
+    lead mare go
+        remember refused as examine [1 2]
+        ^ ears forward   tension ~0.1 ^
+        release refused`,
 
   "gaits": `band schedule
 

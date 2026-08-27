@@ -1,3 +1,5 @@
+import { Weather } from "./weather.js";
+
 // HORSEtxt runtime. Emitted code calls into this.
 //
 // Everything here traces to BIBLIOGRAPHY.md. Where v0.1 implements a shape without
@@ -98,19 +100,15 @@ export function forage(source, regrows) { return new Forage(source, regrows); }
 
 // -------------------------------------------------------------------------- weather
 //
-// GRAMMAR.md §6.4. Read, never generated. v0.1 returns independent fresh values
-// behind the axis names; the correlations (wet+wind suppress flies), the
-// autocorrelation, and the individual conditioning of `cold` against the lower
-// critical temperature all land in v0.2. The shape is fixed so that is a runtime
-// change and not a syntax change.
+// GRAMMAR.md §6.4, implemented in weather.js: correlated, autocorrelated, and with
+// `cold` read against the individual's lower critical temperature. Fixing the shape
+// in v0.1 meant this could land as a runtime change and not a syntax change.
 
 const CONDITIONS = new Set(["cold", "wet", "wind", "sun", "flies"]);
 
+// Kept for callers that want a reading with no animal and no host.
 export function weather(condition) {
-  if (!CONDITIONS.has(condition)) {
-    throw new TypeError(`${condition} is not a weather condition`);
-  }
-  return Math.random();
+  return new Weather({}).read(condition);
 }
 
 // ------------------------------------------------------------------------ recognise
@@ -191,6 +189,66 @@ const NATURAL_BAND = 8; // one stallion, two to four mares, and offspring
 // Measured inter-onset intervals, in milliseconds (BIBLIOGRAPHY.md, gaits).
 const TEMPO = { walk: 301, trot: 352, pace: 352, canter: 148, gallop: 148, tolt: 301, back: 301 };
 
+// A gait is a limb-phase vector, not a case in a switch. Each number is the point in
+// the stride at which that limb strikes, as a fraction of the cycle; limbs sharing a
+// phase strike together. The named gaits are anchors in that space, which is what
+// §5 has always said they were.
+//
+// `duty` is how long a hoof stays down. Above 0.25 in a four-beat gait, at least one
+// hoof is always down — which is the whole difference between a walk and a tolt,
+// since their phase vectors are identical.
+//
+//                                    LH    LF    RH    RF
+const LIMBS = ["LH", "LF", "RH", "RF"];
+const ANCHORS = {
+  // Four beats, evenly spaced, lateral sequence: LH, LF, RH, RF.
+  walk:   { phases: [0.00, 0.25, 0.50, 0.75], duty: 0.60 },
+  // The same sequence and the same spacing, held longer: no suspension, so the
+  // strides of a held tolt run back to back.
+  tolt:   { phases: [0.00, 0.25, 0.50, 0.75], duty: 0.70 },
+  // Two beats, diagonal pairs: LF with RH, then RF with LH.
+  trot:   { phases: [0.50, 0.00, 0.00, 0.50], duty: 0.40 },
+  // Two beats, lateral pairs: LF with LH, then RF with RH.
+  pace:   { phases: [0.00, 0.00, 0.50, 0.50], duty: 0.40 },
+  // Three beats and a suspension twice as long as the intervals around it, which is
+  // the 1:1, 1:2, 2:1 the measurements show. Right lead: LH, then RH with LF, then RF.
+  canter: { phases: [0.00, 0.25, 0.25, 0.50], duty: 0.35 },
+  // The canter with its diagonal pair broken: four separate beats, then suspension.
+  gallop: { phases: [0.00, 0.40, 0.20, 0.60], duty: 0.30 },
+};
+
+// A gait on the far side of a lead is its mirror: the pairs swap sides.
+function mirrored(vector) {
+  const [lh, lf, rh, rf] = vector.phases;
+  return { phases: [rh, rf, lh, lf], duty: vector.duty };
+}
+
+// Statements are assigned to limbs in order and grouped by the phase they strike at,
+// so the schedule falls out of the vector rather than out of a switch.
+function schedule(vector, thunks) {
+  const groups = new Map();
+  thunks.forEach((t, i) => {
+    const phase = vector.phases[i % LIMBS.length];
+    if (!groups.has(phase)) groups.set(phase, []);
+    groups.get(phase).push(t);
+  });
+  return [...groups.entries()].sort((a, b) => a[0] - b[0]).map(([, g]) => g);
+}
+
+// Between two anchors. Halfway from a walk to a pace is a stepping pace — a real
+// gait, slightly uneven and lateral, which falls out of the arithmetic rather than
+// having to be listed.
+export function between(a, b, t) {
+  const x = ANCHORS[a], y = ANCHORS[b];
+  if (!x || !y) throw new TypeError(`${!x ? a : b} is not a gait`);
+  return {
+    phases: x.phases.map((p, i) => p + (y.phases[i] - p) * t),
+    duty: x.duty + (y.duty - x.duty) * t,
+  };
+}
+
+export { ANCHORS as gaits };
+
 export class Horse {
   // A spook must not swallow a terminal outcome: balking and leaving are successes
   // travelling out through the same channel errors use.
@@ -203,6 +261,7 @@ export class Horse {
     this.genotypeAllele = "CA";
     this.breed = null;
 
+    this.sky = new Weather(host);
     this.contexts = [];   // effect handler stack
     this.loops = 0;       // gaits and sentinels currently running, for `halt`
     this.attending = true; // set by chords; ears are attention
@@ -220,6 +279,7 @@ export class Horse {
 
   declare(individual) {
     this.individual = individual;
+    this.sky.individual = individual;
     for (const t of individual.traits || []) {
       if (t.kind === "bias") this.side = t.side;
     }
@@ -437,13 +497,13 @@ export class Horse {
       if (opts.interval != null) {
         const ms = durationMs(opts.interval);
         for (;;) {
-          await this.stride(name, thunks);
+          await this.stride(name, thunks, opts);
           if (this.left) return;
           if (this.host.stop && this.host.stop()) return;
           if (name !== "tolt") await sleep(ms);
         }
       }
-      return await this.stride(name, thunks);
+      return await this.stride(name, thunks, opts);
     } catch (e) {
       // A halt ends this gait and only this gait, so a nested gait halts first.
       if (e instanceof Halted) return;
@@ -453,55 +513,40 @@ export class Horse {
     }
   }
 
-  async stride(name, thunks) {
+  // One stride. The schedule comes from the gait's phase vector: limbs that strike
+  // together run together, and the groups run in phase order. `back` is the one
+  // exception — reversing is not a phase relationship, it is a direction.
+  async stride(name, thunks, opts = {}) {
     const beat = this.conditioned ? (TEMPO[name] || 0) : 0;
 
-    const runSequential = async (list) => {
-      for (const t of list) {
+    if (name === "back") {
+      for (const t of Array.from(thunks).reverse()) {
         await t();
         if (beat) await sleep(beat);
       }
-    };
-    const runGroups = async (groups) => {
-      for (const g of groups) {
-        await Promise.all(g.map((t) => t()));
-        if (beat) await sleep(beat);
-      }
-    };
+      return;
+    }
 
-    switch (name) {
-      case "walk":
-        return runSequential(thunks);
-      case "back":
-        return runSequential(Array.from(thunks).reverse());
-      // Trot is diagonal pairs; pace is lateral pairs. Both strike two at a time —
-      // the difference is which two, which only shows with four limbs' worth of work.
-      case "trot":
-      case "pace":
-        return runGroups(pairs(thunks));
-      // Three beats, unevenly spaced: one, then a pair, then one. The suspension
-      // runs twice as long as the intervals around it.
-      case "canter": {
-        const [first, ...rest] = thunks;
-        if (first) { await first(); if (beat) await sleep(beat); }
-        const middle = rest.slice(0, Math.max(0, rest.length - 1));
-        const last = rest[rest.length - 1];
-        if (middle.length) { await Promise.all(middle.map((t) => t())); if (beat) await sleep(beat); }
-        if (last) await last();
-        if (beat) await sleep(beat * 2); // suspension
-        return;
-      }
-      case "gallop":
-        await Promise.all(thunks.map((t) => t()));
-        if (beat) await sleep(beat);
-        return;
-      // Four beats in the walk's sequence, faster, and with no suspension. Held with
-      // `every`, it is the one gait whose strides run back to back.
-      case "tolt":
-      default:
-        return runSequential(thunks);
+    let vector = opts.vector || ANCHORS[name];
+    if (!vector) throw new TypeError(`${name} is not a gait`);
+    // A lead is which side leads; the far side is the mirror of the near one.
+    if (opts.lead === "left") vector = mirrored(vector);
+
+    for (const group of schedule(vector, thunks)) {
+      if (group.length === 1) await group[0]();
+      else await Promise.all(group.map((t) => t()));
+      if (beat) await sleep(beat);
+    }
+
+    // The suspension: what is left of the stride after the last hoof leaves. A tolt
+    // has none, which is why its strides run back to back.
+    if (beat) {
+      const last = Math.max(...vector.phases);
+      const suspension = Math.max(0, 1 - last - vector.duty);
+      if (suspension > 0.01) await sleep(beat * suspension * 4);
     }
   }
+
 
   // ---------------------------------------------------------------------- stand
   //
@@ -529,7 +574,7 @@ export class Horse {
   // taking each mouthful. Horses are selective grazers, so a `blank` in the body
   // advances without acting — that is the filter.
 
-  async graze(source, body) {
+  async graze(source, body, driven = "forward") {
     // Order matters, and `source.entries` is a trap: every Array has one as a
     // *method*, so a truthiness check on it grabs the function and grazing a plain
     // list silently fails.
@@ -540,6 +585,10 @@ export class Horse {
     else if (Array.isArray(source)) items = source;
     else if (typeof source[Symbol.iterator] === "function") items = Array.from(source);
     else throw new TypeError(`${String(source)} cannot be grazed`);
+
+    // The point of balance is at the shoulder. Pressure behind it drives the animal
+    // forward; pressure in front of it drives it back (GRAMMAR.md §12g).
+    if (driven === "back") items = items.slice().reverse();
 
     for (const item of items) {
       await body(item);
@@ -580,15 +629,68 @@ export class Horse {
   // which a `spook` can handle. The right eye feeds the left hemisphere and
   // categorises instead.
 
-  async flehmen(value, side) {
+  // GRAMMAR.md §12g. The side is not decoration on one operation — it selects which
+  // question was asked, because the hemispheres do different work.
+  //
+  // `held` is what the enclosing cue was handed. A horse cannot see its own muzzle,
+  // so what you are holding is what you cannot look at.
+  async flehmen(value, side, held = []) {
+    // Both ears flattened is agonistic, and an agonistic animal is not attending.
+    // Attention is read from eyes and ears together; without it there is no looking.
+    if (!this.attending) {
+      throw new Balk("not attending; a flattened ear is not a look");
+    }
+    if (held.some((h) => h === value)) {
+      throw new Balk("that is at your muzzle");
+    }
+
     const s = side || this.side;
-    const key = this.shape(value);
+    const key = this.trace(value);
     const met = this.exposures.has(key);
     this.expose(key);
-    if (s === "left" && !met) {
-      await this.signal("novel", value, { via: "flehmen" });
+
+    // Left eye, right hemisphere: novelty, threat, escape. The question is whether
+    // this is new, and the answer is a truth.
+    if (s === "left") {
+      if (!met) await this.signal("novel", value, { via: "flehmen" });
+      return !met;
     }
-    return value;
+
+    // Right eye, left hemisphere: analytical categorisation. The question is what
+    // kind of thing this is, and the answer is a category.
+    return this.category(value);
+  }
+
+  // What makes one thing the same thing as another, for the purpose of having met
+  // it before. Distinct from `shape`, which keys habituation on the *kind* of a
+  // failure — reusing that here made every string one stimulus, so meeting one
+  // string counted as having met them all.
+  //
+  // A thing you can hold is identified by what it is; a thing with parts is
+  // identified by its parts, which is why a familiar object rotated reads as novel.
+  trace(value) {
+    if (value === null || value === undefined) return "nothing";
+    const t = typeof value;
+    if (t === "number" || t === "string" || t === "boolean") return `${t}:${value}`;
+    if (t === "function") return `cue:${value.cueName || "hands"}`;
+    if (Array.isArray(value)) return `many:${value.length}:${value.map((v) => this.trace(v)).join(",")}`;
+    if (value instanceof Affect) return `affect:${value.arousal}:${value.valence}`;
+    try {
+      return `thing:${Object.keys(value).sort().join(",")}`;
+    } catch (e) {
+      return "thing";
+    }
+  }
+
+  category(value) {
+    if (value === null || value === undefined) return "nothing";
+    if (value instanceof Affect) return "affect";
+    if (value instanceof Forage) return "forage";
+    if (value instanceof Pile) return "pile";
+    if (Array.isArray(value)) return "many";
+    if (typeof value === "function") return value.isCue ? "cue" : "hands";
+    if (typeof value === "object") return "thing";
+    return typeof value; // number, string, boolean
   }
 
   // -------------------------------------------------------------- rest, sentinel
@@ -626,16 +728,6 @@ export class Horse {
 
   watch(target) { if (this.host.onWatch) this.host.onWatch(target); return target; }
 
-  // ----------------------------------------------------------------------- zones
-  //
-  // v0.1 records the boundary. Enforcement — approach it and it moves away — needs
-  // the perception model that lands with blind spots in v0.2.
-
-  async zone(kind, body) {
-    if (this.host.onZone) this.host.onZone(kind);
-    return body();
-  }
-
   get hands() { return globalThis; }
 
   // ------------------------------------------------------------- value builders
@@ -648,7 +740,17 @@ export class Horse {
   range(from, to) { return range(from, to); }
   forage(source, regrows) { return forage(source, regrows); }
   pile(key) { return pile(key); }
-  weather(condition) { return weather(condition); }
+
+  // `weather.cold` is read against *this* animal's lower critical temperature, so
+  // the same weather is a different reading for a different individual — the same
+  // pattern as everything else here: conditioned by the receiver.
+  weather(condition) { return this.sky.read(condition); }
+
+  // A fresh independent draw, 0..1. Plain, per principle zero: a coin flip has no
+  // equine analogue. It is emphatically not `weather`, which is slow, shared and
+  // correlated — read three times in an instant, weather gives one answer and
+  // `chance` gives three.
+  chance() { return Math.random(); }
   recognise(value) { return recognise(value); }
   graded(n) { return graded(n); }
   affect(a, v) { return affect(a, v); }

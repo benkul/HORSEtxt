@@ -100,17 +100,14 @@ emission, not with a source map.
 
 Beyond that, the parts of the design still ahead of the implementation:
 
-- **The body and its limits.** Blind spots and the monocular field — a horse cannot see
-  its own muzzle, so a value held too close cannot be read. The point of balance as a
-  directional operator. `flehmen` as *required* routing for a deep read rather than an
-  optional one. Gaits as phase vectors that interpolate, instead of six named regions.
 - **History as semantics.** Trials-to-criterion training, so a newly defined cue is not
   reliable until it has been run. Late-release degradation toward learned helplessness.
   Welfare as a capability gate.
-
-Laterality is threaded through calls, chords and `flehmen` today, but only
-*consequential* in `flehmen` — the divergence between the two hemispheres needs the
-perception model above.
+- **The approach model**, whole: flight zone, pressure zone and the point of balance are
+  one system for moving an animal that would rather you did not, and the size of a flight
+  zone is set by handling history. Only the point of balance exists today; the other two
+  wait for the individual to have a history to be sized by.
+- `hears creak as v` — a handler can see that a signal arrived but not what it carried.
 
 The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
 §12a–§12e. Worked programs are in `examples/`.
@@ -127,6 +124,13 @@ it to the nearest enclosing context, which decides what it means — alarm insid
 `spook`, contentment inside `graze`. This is algebraic effects, and it is how the animal
 works: the production context constrains the meaning, and the signal itself is
 underdetermined.
+
+**Which eye you look with changes the question.** The left eye feeds the right
+hemisphere — novelty, threat, escape — and the right feeds the left, which categorises.
+So `flehmen x from the left` asks whether this is new and answers with a truth, while
+`from the right` asks what kind of thing it is and answers with a category. An animal
+whose ears are flattened is not attending and cannot look at all, and a cue cannot
+inspect what it was handed, because a horse cannot see its own muzzle.
 
 **A line is a chord.** Real signalling is ears *and* head height *and* nostrils *and*
 tension, simultaneously, and the combination is the utterance. A chord opens and closes

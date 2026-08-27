@@ -69,10 +69,6 @@ export function browserHost(options = {}) {
       }
     },
 
-    onZone(kind) {
-      if (root) root.setAttribute("data-zone", kind);
-    },
-
     onWatch() { /* the sentinel's business, not the page's */ },
 
     // The hold. Stay within `jitter` of where the pointer was for `ms`, and report

@@ -432,6 +432,20 @@ class Parser {
     const kw = this.next();
     const source = this.parseExpression();
     let as = null;
+    // The point of balance sits at the shoulder: pressure behind it drives forward,
+    // pressure in front of it drives back (GRAMMAR.md §12g).
+    let driven = null;
+    if (this.isKw("from")) {
+      this.next();
+      if (this.is(T.IDENT, "behind")) { this.next(); driven = "forward"; }
+      else if (this.isKw("the")) {
+        this.next();
+        if (this.is(T.IDENT, "front")) { this.next(); driven = "back"; }
+        else this.fail("pressure is applied from behind, or from the front", "§12g");
+      } else {
+        this.fail("pressure is applied from behind, or from the front", "§12g");
+      }
+    }
     if (this.isKw("as")) {
       this.next();
       const id = this.expect(T.IDENT, undefined, "§6.1");
@@ -439,7 +453,7 @@ class Parser {
     }
     this.expect(T.NEWLINE, undefined, "§6.1");
     const body = this.block("§6.1");
-    return this.node("Graze", kw, { source, as, body });
+    return this.node("Graze", kw, { source, as, body, driven });
   }
 
   // spook = "spook" "at" expression NEWLINE block [ habituates ]       (§10)
@@ -730,7 +744,7 @@ class Parser {
       case T.LPAREN:
         return true;
       case T.KEYWORD:
-        return t.value === "weather" || t.value === "hands" ||
+        return t.value === "weather" || t.value === "hands" || t.value === "chance" ||
                t.value === "recognise" || t.value === "flehmen" || t.value === "new";
       default:
         return false;
@@ -836,6 +850,13 @@ class Parser {
 
     if (t.type === T.KEYWORD) {
       if (t.value === "weather") return this.parseWeather();
+      // A fresh independent draw. Not weather: weather is slow, shared and
+      // correlated, which is what it turned out to be once it was implemented
+      // properly — and that is not what a coin flip is.
+      if (t.value === "chance") {
+        this.next();
+        return this.node("Chance", t, {});
+      }
       if (t.value === "hands") {
         this.next();
         return this.node("Hands", t, {});

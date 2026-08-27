@@ -342,27 +342,41 @@ T("one ear each way is divided attention", async () => {
 
 // ---------------------------------------------------------------------- gaits
 
-T("walk is sequential, gallop is concurrent", async () => {
+T("a walk waits, a trot does not", async () => {
   const H = new Horse({});
   const order = [];
   const slow = () => new Promise((r) => setTimeout(() => { order.push("slow"); r(); }, 20));
   const fast = () => { order.push("fast"); return Promise.resolve(); };
 
   await H.gait("walk", [slow, fast]);
-  eq(order, ["slow", "fast"], "walk waits");
+  eq(order, ["slow", "fast"], "four separate beats, so it waits");
 
+  // A trot is two beats, so two statements strike together.
   order.length = 0;
-  await H.gait("gallop", [slow, fast]);
-  eq(order, ["fast", "slow"], "gallop does not wait");
+  await H.gait("trot", [slow, fast]);
+  eq(order, ["fast", "slow"], "struck together, finished out of order");
 });
 
-T("trot strikes in pairs", async () => {
+T("a gallop is four beats, not everything at once", async () => {
+  // Full fan-out was never a gait: a moving horse does not put four hooves down
+  // together. The gallop is LH, RH, LF, RF and then suspension.
+  const H = new Horse({});
+  const order = [];
+  const slow = () => new Promise((r) => setTimeout(() => { order.push("slow"); r(); }, 20));
+  const fast = () => { order.push("fast"); return Promise.resolve(); };
+  await H.gait("gallop", [slow, fast]);
+  eq(order, ["slow", "fast"], "separate beats, so it waits");
+});
+
+T("trot strikes in diagonal pairs, by limb and not by adjacency", async () => {
   const H = new Horse({});
   const order = [];
   const mk = (n, ms) => () => new Promise((r) => setTimeout(() => { order.push(n); r(); }, ms));
+  // a,b,c,d take the limbs LH, LF, RH, RF. The diagonals are LF+RH and RF+LH —
+  // so b with c, and d with a. Grouping by adjacent index would pair a with b.
   await H.gait("trot", [mk("a", 20), mk("b", 1), mk("c", 20), mk("d", 1)]);
-  // b lands before a because they strike together; c and d come after both.
-  eq(order, ["b", "a", "d", "c"]);
+  eq(order.slice(0, 2).sort(), ["b", "c"], "left fore with right hind");
+  eq(order.slice(2).sort(), ["a", "d"], "then right fore with left hind");
 });
 
 T("back reverses", async () => {

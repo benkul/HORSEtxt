@@ -278,9 +278,6 @@ class Resolver {
         this.expr(s.target, scope);
         return;
 
-      case "Zone":
-        this.block(s.body, new Scope(scope, "zone"));
-        return;
 
       case "Chord":
         this.chord(s, scope);
@@ -484,6 +481,7 @@ class Resolver {
       case "State":
       case "Hands":
       case "Weather":
+      case "Chance":
         return;
       default:
         this.fail(e, `resolver: unhandled expression ${e.type}`);
