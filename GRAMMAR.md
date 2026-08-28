@@ -1176,6 +1176,18 @@ warning goes quiet without duplicating anything.
 **A name that exists in the herd but was not shared says so**, rather than reading as a
 misspelling — which was the one cost worth worrying about when the design was proposed.
 
+## 12k. The face was leaking — v0.2.3
+
+Found by having a page *read* a posture rather than only style itself from one.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **A chord did not clear what it did not say** | `onChord` set `data-<channel>` for every channel a chord named and left the rest alone, so a channel from an earlier chord persisted. A program that opened its nostrils once was described as having them open for the rest of its life, and a host could not tell a held position from a leftover | The host clears any channel the new chord does not name. §4 already said a chord is *one* utterance with simultaneous channels; the host was treating it as a diff |
+
+This only matters for a host that reads the posture back. Styling from it was unaffected,
+which is why it survived three ported programs and 285 tests: a stale `data-lids` selector
+matches nothing anybody had written a rule for.
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
@@ -1184,6 +1196,12 @@ misspelling — which was the one cost worth worrying about when the design was 
 22. **A `hears` handler cannot name the value it receives.** `hears creak` has no binding
     form, so a handler can see that a signal arrived but not what it carried. The emitter
     passes one; the language cannot reach it. Wants `hears creak as v` or similar.
+24. **Nothing abandons one attempt and keeps the gait.** `otherwise` falls through, `blank`
+    exits the cue, and `halt` ends the gait, so a stride that should give up and try again
+    next time has no form. Worked around twice in real programs by inverting the guard --
+    `when not busy` carrying the whole body instead of `when busy` leaving -- which reads
+    backwards and nests one level deeper every time. Wants something that ends the stride,
+    not the gait. A horse that puts a hoof down badly does not stop walking.
 23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
     member name survives to runtime. That is the price of `hands` being a flat boundary
     onto JavaScript, and it is probably the right price.

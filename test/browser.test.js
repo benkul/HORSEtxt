@@ -43,6 +43,7 @@ function fakeDoc(sources) {
     documentElement: {
       setAttribute: (k, v) => attrs.set(k, v),
       getAttribute: (k) => attrs.get(k) ?? null,
+      removeAttribute: (k) => attrs.delete(k),
       attrs,
     },
     querySelectorAll: (sel) => (sel === 'script[type="text/horse"]' ? scripts : []),
@@ -196,6 +197,22 @@ T("the host writes the posture onto the document", async () => {
   eq(doc.documentElement.getAttribute("data-tension"), "0.4");
 });
 
+// A chord is one utterance and its channels are simultaneous (§4). What the second
+// chord does not say, the animal is not doing — so a page reading `data-lids` never
+// has to wonder whether it is looking at a held position or last chord's leftovers.
+T("a chord clears the channels it does not name", async () => {
+  const doc = fakeDoc([]);
+  const host = browserHost({ document: doc });
+  host.onChord({
+    ears: "forward",
+    states: [{ channel: "eyes", value: "wide" }, { channel: "nostrils", value: "AD38" }],
+  });
+  host.onChord({ ears: "divided", states: [{ channel: "eyes", value: "soft" }] });
+  eq(doc.documentElement.getAttribute("data-ears"), "divided");
+  eq(doc.documentElement.getAttribute("data-eyes"), "soft");
+  eq(doc.documentElement.getAttribute("data-nostrils"), null, "nostrils were not uttered");
+});
+
 T("the host tracks the pointer passively", async () => {
   const doc = fakeDoc([]);
   browserHost({ document: doc });
@@ -271,7 +288,7 @@ function lendDOM() {
     createElement: el,
     querySelector: el,
     body: { appendChild() {} },
-    documentElement: { setAttribute() {}, getAttribute: () => null },
+    documentElement: { setAttribute() {}, getAttribute: () => null, removeAttribute() {} },
     addEventListener() {}, removeEventListener() {},
   };
   return () => { if (had) globalThis.document = previous; else delete globalThis.document; };

@@ -51,6 +51,9 @@ export function browserHost(options = {}) {
     }
   }
 
+  // Which channels the last chord wrote, so the next one can clear what it does not say.
+  let written = new Set();
+
   let stopped = false;
   if (globalThis.addEventListener) {
     globalThis.addEventListener("beforeunload", () => { stopped = true; });
@@ -61,12 +64,25 @@ export function browserHost(options = {}) {
 
     // A chord is an utterance, and ears are attention — so the page can style itself
     // from the posture. `data-ears="agonistic"` is a real selector.
+    //
+    // A chord is *one* utterance and its channels are simultaneous (§4), so the face
+    // is only what this chord says. A channel the chord does not name is cleared:
+    // leaving the last one behind would assert a state no chord ever uttered, and a
+    // page reading `data-lids` could not tell a held position from a stale one.
     onChord(posture) {
       if (!root) return;
+      const named = new Set();
       root.setAttribute("data-ears", posture.ears);
+      named.add("ears");
       for (const s of posture.states) {
-        if (s.channel) root.setAttribute(`data-${s.channel}`, describe(s.value));
+        if (!s.channel) continue;
+        root.setAttribute(`data-${s.channel}`, describe(s.value));
+        named.add(s.channel);
       }
+      for (const channel of written) {
+        if (!named.has(channel)) root.removeAttribute(`data-${channel}`);
+      }
+      written = named;
     },
 
     onWatch() { /* the sentinel's business, not the page's */ },
