@@ -145,6 +145,47 @@ band looking
             ^ tension ~(strides.graze / 5) ^
         release`,
 
+  "nothing, and none": `band counting
+
+    # zero is a quantity. bare is nothing being there. a horse at a full haynet
+    # that has eaten nothing is not a horse standing where there is no haynet,
+    # and a language that calls both of them false cannot tell you which one it
+    # is looking at.
+    #
+    # so \`or\` is not a default: it joins answers and gives an answer back. the
+    # default is patch use -- the first patch with anything in it.
+
+    remember eaten as 0
+    remember name as bare
+
+    lead mare count
+        when eaten
+            ^ ears forward   head ~0.2 ^
+
+        when not name
+            ^ ears divided   head ~0 _
+
+        # walk the patches. the near two are bare and none; none is something.
+        remember found as grass in [name eaten "the far patch"]
+        ^ tension ~0.2 ^
+        release found`,
+
+  "a stride that did not land": `band footing
+
+    remember steps as 0
+
+    # a stumble is not a fall and it is not a halt: the horse gathers itself and
+    # takes the next stride. nothing after the bad hoof happens, including the
+    # suspension -- a stumble is where the rhythm breaks.
+    lead mare cross
+        walk every 200ms
+            steps becomes steps + 1
+            when (steps < 3)
+                stumble
+            halt
+        ^ ears forward   tension ~(steps / 5) ^
+        release steps`,
+
   "the band is too large": `band crowded
 
     cue one

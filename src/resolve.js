@@ -43,6 +43,18 @@ class Scope {
     return null;
   }
 
+  // Whether anything up the chain is a gait. A cue boundary stops the search: a cue
+  // called from inside a stride does not know it is in one, and neither does the
+  // horse -- the animal that stumbles is the one taking the step.
+  within(kind) {
+    let s = this;
+    while (s && s.kind !== "cue" && s.kind !== "group") {
+      if (s.kind === kind) return true;
+      s = s.parent;
+    }
+    return false;
+  }
+
   // Which band in this herd owns a name, if the enclosing band cannot see it.
   homeOf(name) {
     let s = this;
@@ -399,6 +411,12 @@ class Resolver {
       case "Rest":
         return;
 
+      case "Stumble":
+        if (!scope.within("gait")) {
+          this.fail(s, "stumble outside a gait; there is no stride to break", "§5a");
+        }
+        return;
+
       case "Stand": {
         if (s.duration) { this.expr(s.duration, scope); this.wantDuration(s.duration, "stand"); }
         if (s.within) { this.expr(s.within, scope); this.wantDistance(s.within, "stand within"); }
@@ -617,6 +635,11 @@ class Resolver {
         return;
       case "List":
         for (const i of e.items) this.expr(i, scope);
+        return;
+      case "Bare":
+        return;
+      case "Grass":
+        this.expr(e.patches, scope);
         return;
       case "Binary":
       case "Compare":

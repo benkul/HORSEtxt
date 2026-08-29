@@ -23,6 +23,11 @@ export class Leave {
 // more. Outside a gait there is nothing to stop, and it does nothing.
 export class Halted {}
 
+// A stride that did not do its work. The horse gathers itself and takes the next
+// one — a stumble is not a fall and it is not a halt, so it ends this stride and
+// nothing else. GRAMMAR.md §5a.
+export class Stumbled {}
+
 // The release travels the same way. It has to: a gait, a graze and a stand each
 // compile their body to a callback, so a plain `return` there would leave the
 // callback and not the cue. Every outcome leaves a cue by unwinding to its boundary.
@@ -418,6 +423,10 @@ export class Horse {
     return undefined;
   }
 
+  // Unlike `halt`, this is not quietly nothing outside a gait: the resolver refuses
+  // it there, because a stride you are not taking cannot be broken.
+  stumble() { throw new Stumbled(); }
+
   // Calls route through here so laterality and provenance apply. `hands` does not:
   // it is a flat, unconditioned boundary (GRAMMAR.md §11).
   async call(callee, args, side) {
@@ -473,7 +482,8 @@ export class Horse {
 
   terminal(e) {
     return e instanceof Balk || e instanceof Leave ||
-           e instanceof Released || e instanceof Halted;
+           e instanceof Released || e instanceof Halted ||
+           e instanceof Stumbled;
   }
 
   // Every emission carries its emitter's provenance whether it wants to or not: a
@@ -557,6 +567,17 @@ export class Horse {
   // together run together, and the groups run in phase order. `back` is the one
   // exception — reversing is not a phase relationship, it is a direction.
   async stride(name, thunks, opts = {}) {
+    try {
+      return await this.step(name, thunks, opts);
+    } catch (e) {
+      // The stride is abandoned; the gait is not. Nothing after this hoof happens,
+      // including the suspension — a stumble is where the rhythm breaks.
+      if (e instanceof Stumbled) return;
+      throw e;
+    }
+  }
+
+  async step(name, thunks, opts = {}) {
     const beat = this.conditioned ? (TEMPO[name] || 0) : 0;
 
     if (name === "back") {
@@ -806,15 +827,49 @@ export class Horse {
   duration(value, unit) { return { value, unit }; }
   distance(value, unit) { return { value, unit }; }
 
+  // GRAMMAR.md §8a. A horse distinguishes three things where JavaScript sees two.
+  //
+  // An **answer** is what a comparison gives back, and "no" is as much an answer as
+  // "yes". A **thing** is present: a quantity of zero is a quantity, and a horse at
+  // a full haynet that has eaten nothing is not in the same situation as a horse
+  // standing where there is no haynet. **Bare** is the third: nothing is there.
+  //
+  // So `when` asks a question of what it is given. Given an answer it takes the
+  // answer; given a thing it asks whether the thing is there. Which is why `0` and
+  // `""` are true and only `false`, bare and a failed sum are not.
+  //
+  // Mejdell 2016 is the whole reason: the horses' third symbol was a blank glyph
+  // they had to *press*, because no-change cannot be inferred from an animal doing
+  // nothing. Silence is not an answer, so absence must not quietly become one.
   truth(v) {
     if (v instanceof Affect) {
       throw new TypeError("an affect is not a truth; name .arousal or .valence");
     }
-    return !!v;
+    if (v === false) return false;
+    return !bare(v);
+  }
+
+  bare(v) { return bare(v); }
+
+  // Patch use. A horse grazing works a patch down and moves to the next; bare
+  // ground does not feed it, and it does not stand there deciding. So the first
+  // patch with anything in it is the one that answers.
+  //
+  // Emphatically not `or`, which joins answers. Draft 7 conflated them and every
+  // default in a real program came back as `true`.
+  grass(patches) {
+    for (const p of patches) if (!bare(p)) return p;
+    return null;
   }
 }
 
 // -------------------------------------------------------------------------- helpers
+
+// Nothing is there. `NaN` belongs here for the same reason the other two do: it is
+// what a question comes back as when it had no answer, not an answer of its own.
+function bare(v) {
+  return v == null || (typeof v === "number" && Number.isNaN(v));
+}
 
 function sleep(ms) {
   if (!ms) return Promise.resolve();

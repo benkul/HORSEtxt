@@ -364,6 +364,8 @@ class Emitter {
   s_Leave(node) { this.line(`H.leave(${this.provenance(node)});`); }
   s_Blank(node) { this.line(`H.blank();`); }
 
+  s_Stumble(node) { this.line(`H.stumble();`); }
+
   s_Sentinel(node) {
     this.hoist(node.body);
     this.line(`await H.sentinel(${this.expr(node.interval)}, [`);
@@ -434,6 +436,13 @@ class Emitter {
   e_Affect(n) { return `H.affect(${this.expr(n.arousal)}, ${this.expr(n.valence)})`; }
   e_Range(n) { return `H.range(${this.expr(n.from)}, ${this.expr(n.to)})`; }
   e_List(n) { return `[${n.items.map((i) => this.expr(i)).join(", ")}]`; }
+
+  e_Bare(n) { return `null`; }
+
+  // Every patch is evaluated before the first is chosen, unlike `or`. A horse
+  // walking a line of patches has already seen them; it does not shut its eyes to
+  // the far one because the near one had grass.
+  e_Grass(n) { return `H.grass(${this.expr(n.patches)})`; }
   e_Weather(n) { return `H.weather(${JSON.stringify(n.condition)})`; }
   e_Chance(n) { return `H.chance()`; }
   e_Recognise(n) { return `H.recognise(${this.expr(n.value)})`; }

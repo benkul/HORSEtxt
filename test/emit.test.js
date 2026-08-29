@@ -163,13 +163,36 @@ T("blank leaves the cue", async () => {
     "        release 1",
     "    lead mare go",
     "        remember stopped as guard 1",
-    "        remember went as guard 0",
+    "        remember went as guard bare",
     "        release", "",
   ].join("\n");
   const seen = [];
   const r = await exec(src, { onChord: (p) => seen.push(p) });
   ok(!r.threw, r.threw && r.threw.message);
   eq(seen.length, 1, "the guarded call stopped; the unguarded one carried on");
+});
+
+// §8a. This test used to pass `0` as the unguarded case, on JavaScript's line,
+// where a count of none and no count at all are the same thing. They are not: a
+// horse at a full haynet that has eaten nothing is not a horse standing where
+// there is no haynet.
+T("zero is a quantity and bare is not", async () => {
+  const src = [
+    "band a",
+    "    cue guard bad",
+    "        when bad",
+    "            blank",
+    "        ^ ears forward ^",
+    "        release 1",
+    "    lead mare go",
+    "        remember counted as guard 0",
+    "        remember absent as guard bare",
+    "        release", "",
+  ].join("\n");
+  const seen = [];
+  const r = await exec(src, { onChord: (p) => seen.push(p) });
+  ok(!r.threw, r.threw && r.threw.message);
+  eq(seen.length, 1, "zero blanked like anything else that is there");
 });
 
 // A handler is not a cue. An outcome raised inside one is its answer to the signal

@@ -78,6 +78,19 @@ the arithmetic rules in §9, and collapsing to one scalar is a type error.
 Plain. Arithmetic is arithmetic; `+ - * / > < >= <= = !=` and nothing more. Text has no
 members — formatting, splitting, casing, and matching all go through `hands`.
 
+`bare` is nothing being there. **It is not zero** — zero is a quantity, and `when 0` is
+true. `when` is false for exactly `false` and for bare (`null`, `undefined`, `NaN`).
+GRAMMAR.md §8a has the reasoning; the short version is that a horse at a full haynet that
+has eaten nothing is not a horse standing where there is no haynet.
+
+`grass in [a b c]` is the first patch with anything in it — the default form. **`or` is
+not a default**: it joins answers and gives an answer back, so `given or 7` is `true`,
+never `7`.
+
+```
+remember name as grass in [stored "unnamed"]
+```
+
 `duration` (`10s`, `900ms`) and `distance` (`20px`, `50%`) are distinct primitive types,
 not numbers with suffixes. They do not mix with each other or with bare numbers, and
 `stand 10s within 20px` type-checks because the two positions want different types.

@@ -247,6 +247,11 @@ class Parser {
         this.expect(T.NEWLINE, undefined, "§10");
         return this.node(cap(k), t, {});
       }
+      if (k === "stumble") {
+        this.next();
+        this.expect(T.NEWLINE, undefined, "§5a");
+        return this.node("Stumble", t, {});
+      }
       if (k === "sentinel") return this.parseSentinel();
       if (k === "rest" || k === "recumbent") {
         this.next();
@@ -754,7 +759,8 @@ class Parser {
         return true;
       case T.KEYWORD:
         return t.value === "weather" || t.value === "hands" || t.value === "chance" ||
-               t.value === "recognise" || t.value === "flehmen" || t.value === "new";
+               t.value === "recognise" || t.value === "flehmen" || t.value === "new" ||
+               t.value === "bare" || t.value === "grass";
       default:
         return false;
     }
@@ -869,6 +875,22 @@ class Parser {
       if (t.value === "hands") {
         this.next();
         return this.node("Hands", t, {});
+      }
+      // Nothing is there. Distinct from zero, which is a quantity (§8a).
+      if (t.value === "bare") {
+        this.next();
+        return this.node("Bare", t, {});
+      }
+      // Patch use: the first patch with anything in it. A list, because a horse
+      // moving through a field passes more than two.
+      if (t.value === "grass") {
+        this.next();
+        this.expect(T.KEYWORD, "in", "§8a");
+        if (!this.is(T.LBRACKET)) {
+          this.fail("grass grows in a list of patches, as `grass in [a b]`", "§8a");
+          return this.node("Grass", t, { patches: this.node("List", t, { items: [] }) });
+        }
+        return this.node("Grass", t, { patches: this.parseList() });
       }
       // Constructing a JavaScript object has no equine analogue, so it stays plain
       // and stays inside the escape hatch: `new hands.Date 2000 0 6`. Without it

@@ -121,9 +121,9 @@ foreignness:
 
 ```
 @ genotype band herd bachelor bachelors context cue release lead mare
-walk trot pace canter gallop tolt halt stand back
+walk trot pace canter gallop tolt halt stand back stumble
 graze forage regrows recognise weather cold wet wind sun flies hands
-and or not
+and or not bare grass in
 spook flood habituates shy balk leave blank
 remember becomes pile when otherwise through empty
 whinny nicker squeal snort flehmen
@@ -414,6 +414,47 @@ because at least one hoof is always down.
 
 Gaits iterate **strides**, not data. For iteration over a collection see §6.
 
+### 5a. `stumble`
+
+```
+stumble      = "stumble" , newline ;
+```
+
+A stride that did not do its work. A stumble is not a fall and it is not a halt: the horse
+gathers itself and takes the next one. So `stumble` ends **this stride and nothing else**
+— the rest of the body does not run, the suspension does not happen, and the gait carries
+on to the next stride.
+
+It exists because there was no way to abandon one attempt and keep going. `otherwise`
+falls through, `blank` exits the cue, and `halt` ends the gait, so a stride that should
+give up and try again next time had to be written as an inverted guard:
+
+```
+walk every 7s
+    when not busy
+        ...the entire body, nested one deeper
+```
+
+which reads backwards and nests again for every condition. With `stumble` the guard says
+what it means and the body stays flat:
+
+```
+walk every 7s
+    when busy
+        stumble
+    (replace)
+```
+
+**A stumble outside a gait is an error, not a no-op** — unlike `halt`, which is quietly
+nothing outside one. A stride you are not taking cannot be broken.
+
+**A cue cannot stumble on its caller's behalf.** The check stops at the cue boundary: a
+cue called from inside a stride does not know it is in one, and neither does the animal.
+The horse that stumbles is the one taking the step.
+
+**A stumble is not an outcome.** A cue still has to end in `release`, `balk`, `leave` or
+`blank`; stumbling is something a gait does, not an answer a cue gives.
+
 ---
 
 ## 6. Traversal
@@ -643,6 +684,62 @@ result, not a timeout — no answer means no one is there, which is information.
 
 ---
 
+## 8a. Truth, and what nothing is
+
+```
+bare         = "bare" ;
+grass        = "grass" , "in" , list ;
+```
+
+A horse distinguishes three things where JavaScript sees two.
+
+| | |
+|---|---|
+| **an answer** | what a comparison gives back. "No" is as much an answer as "yes" |
+| **a thing** | present. `0`, `""`, `[]` are all things that are there |
+| **bare** | nothing is there. `null`, `undefined`, and a sum that came back `NaN` |
+
+`when` asks a question of what it is given: an answer, it takes; a thing, it asks whether
+the thing is there. So `when` is false for exactly `false` and for bare, and **`when 0` is
+true.**
+
+**Zero is a quantity; absence is not.** A horse at a full haynet that has eaten nothing
+and a horse standing where there is no haynet are in different situations, and a language
+that calls both of them false cannot tell you which one it is looking at.
+
+**Mejdell 2016 is why.** Horses were taught three symbols — blanket on, blanket off, and
+no change — and the third was a **blank glyph the animal had to press**. The experimenters
+would not read "no change" off a horse standing still, because a horse standing still
+might be confused, unmotivated or unable. Silence is not an answer. `blank` has encoded
+this since v0.1; §8a is the rest of the language catching up with it.
+
+`NaN` is bare for the same reason the other two are: it is what a question comes back as
+when it had no answer, not an answer of its own.
+
+### Patch use
+
+`or` joins answers and gives an answer back. That is correct for `or` and useless as a
+default — `given or 7` is `true`, never `7`. They were conflated until draft 7, and every
+default in a real program came back as a boolean.
+
+A default is not a logical join. It is **patch use**: a horse works a patch down and moves
+to the next, and bare ground does not feed it. So the first patch with anything in it is
+the one that answers.
+
+```
+remember name as grass in [stored "unnamed"]
+remember src as grass in [chosen last-shown "images/img1.jpg"]
+```
+
+A list, because a horse crossing a field passes more than two patches, and nesting a
+binary operator to say so would be pretending otherwise. **Every patch is evaluated**,
+unlike `or` — an animal walking a line of patches has already seen them, and does not shut
+its eyes to the far one because the near one had grass.
+
+All patches bare comes back bare, which is the honest answer and not an error.
+
+---
+
 ## 9. Affect
 
 `~a:~v` is a pair: arousal and valence. F0 and G0 are non-harmonically related and do not
@@ -757,7 +854,8 @@ list         = "[" , { expression } , "]" ;
 conventional precedence (`not` binds tightest, then `and`, then `or`). Boolean logic has no
 equine analogue, so per principle zero it stays plain. There are no truth *literals*:
 truth comes from comparisons and from members like `empty`, and a language with no `true`
-is a language where a flag has to be a real reading of something.
+is a language where a flag has to be a real reading of something. What counts as true is
+§8a; `or` joins **answers** and is not a default (§8a).
 
 **`range` sits above `comparison`**, not inside `primary`. In draft 2 it was a `primary`
 reachable from `sum`, which made `1 through 438` ambiguous with itself.
@@ -1188,6 +1286,29 @@ This only matters for a host that reads the posture back. Styling from it was un
 which is why it survived three ported programs and 285 tests: a stale `data-lids` selector
 matches nothing anybody had written a rule for.
 
+## 12l. What a horse counts as true — v0.3
+
+The question that opened this was "what does a horse consider to be truth?", and it turned
+out the language had already answered it once, in one place, and then forgotten everywhere
+else.
+
+`blank` exists because of Mejdell 2016: the third symbol was a blank glyph the horse had
+to **press**, because no-change cannot be read off an animal standing still. §10 has said
+so since v0.1. And then every `when` in the language used JavaScript truthiness, where
+absence quietly becomes false — the exact inference Mejdell's design refuses.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **Zero and absence were the same thing** | `when 0` was false, so a count of none and no count at all were indistinguishable. Real programs leaned on it: a gallery held `attending as 0` to mean "not attending", which worked only because JavaScript agrees that nothing and none are one | Three states, §8a. An **answer** (yes/no from a comparison), a **thing** (present — `0`, `""`, `[]`), and **bare** (`null`, `undefined`, `NaN`). `when 0` is now true |
+| **`or` was being asked to be a default** | `given or 7` yields `true`, never `7`, because `or` joins answers and gives an answer back. Six occurrences per page across the site were waiting to be written wrong | Not a value-preserving `or` — a different construct. **Patch use**: a horse works a patch down and moves on, and bare ground does not feed it. `grass in [a b c]`, over a list because a field has more than two patches |
+| **Nothing abandoned one attempt** | §13 item 24. Worked around twice by inverting the guard, which reads backwards and nests deeper every time | `stumble`, §5a. Ends the stride and nothing else |
+
+**This is a breaking change**, and deliberately taken while it is cheap: three lines in one
+ported page and one edge case in another. It would not have been cheap at ten pages.
+
+`NaN` landing in bare is the detail worth keeping: it is what a question comes back as when
+it had no answer, which is not an answer of its own.
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
@@ -1196,12 +1317,8 @@ matches nothing anybody had written a rule for.
 22. **A `hears` handler cannot name the value it receives.** `hears creak` has no binding
     form, so a handler can see that a signal arrived but not what it carried. The emitter
     passes one; the language cannot reach it. Wants `hears creak as v` or similar.
-24. **Nothing abandons one attempt and keeps the gait.** `otherwise` falls through, `blank`
-    exits the cue, and `halt` ends the gait, so a stride that should give up and try again
-    next time has no form. Worked around twice in real programs by inverting the guard --
-    `when not busy` carrying the whole body instead of `when busy` leaving -- which reads
-    backwards and nests one level deeper every time. Wants something that ends the stride,
-    not the gait. A horse that puts a hoof down badly does not stop walking.
+24. ~~**Nothing abandons one attempt and keeps the gait.**~~ Closed in v0.3 — `stumble`,
+    §5a. A horse that puts a hoof down badly does not stop walking.
 23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
     member name survives to runtime. That is the price of `hands` being a flat boundary
     onto JavaScript, and it is probably the right price.
