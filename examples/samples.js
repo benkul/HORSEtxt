@@ -170,6 +170,26 @@ band looking
         ^ tension ~0.2 ^
         release found`,
 
+  "a signal that carried something": `band gates
+
+    # a signal has no meaning of its own. the nearest context decides what it
+    # means -- and since v0.4 the handler can name what arrived, which is what
+    # makes a context worth having.
+
+    cue creaked which
+        snort which
+        release 0
+
+    lead mare listen
+        context near
+            hears snort as gate
+                ^ ears forward   head ~0.4   nostrils AD38 ^
+                release ("that one moved: " + gate)
+
+        remember answer as (creaked "the far gate")
+        ^ tension ~0.2 ^
+        release answer`,
+
   "a stride that did not land": `band footing
 
     remember steps as 0

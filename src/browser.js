@@ -198,6 +198,11 @@ export async function runSource(source, filename, host) {
       return { ...out, ran: true, left: false, horse: H };
     }
     return { ...out, ran: true, threw: e, horse: H };
+  } finally {
+    // Past here the program is over and the animal is still standing there. Anything
+    // that calls back in -- a listener, a host, a cue the page was handed -- reaches
+    // a horse with nothing left to leave. §11a.
+    H.standing = true;
   }
 }
 

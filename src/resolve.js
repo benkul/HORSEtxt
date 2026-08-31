@@ -21,6 +21,15 @@ const NATURAL_BAND = 8;
 // arrive here as names.
 const BUILTIN_SIGNALS = ["whinny", "nicker", "squeal", "snort"];
 
+// GRAMMAR.md §11a. JavaScript methods that coerce what a callback returns, and so
+// cannot be handed a cue: a cue is async and returns a promise, which every one of
+// these reads as "yes" or as "not a number". Named rather than inferred, because
+// whether a receiver wants its answer now is not knowable from the syntax.
+const WANTS_AN_ANSWER_NOW = new Set([
+  "sort", "filter", "map", "reduce", "reduceRight", "find", "findIndex", "findLast",
+  "findLastIndex", "some", "every", "flatMap",
+]);
+
 class Scope {
   constructor(parent, kind) {
     this.parent = parent;
@@ -474,7 +483,11 @@ class Resolver {
 
       case "Context":
         for (const h of s.handlers) {
-          this.block(h.body, new Scope(scope, "handler"));
+          const inner = new Scope(scope, "handler");
+          // What the signal carried. Declared here so the body can name it, and only
+          // here: it belongs to this interpretation and not to the next one.
+          if (h.binding) inner.declare(h.binding, { kind: "value", node: h });
+          this.block(h.body, inner);
         }
         return;
 
@@ -525,6 +538,52 @@ class Resolver {
           "GRAMMAR.md §3",
         );
       }
+    }
+
+    // GRAMMAR.md §11a. Pressure with no release. A member path alone on a line
+    // reaches across the boundary, takes hold of something, and lets go of it
+    // without asking anything -- `channel.play` reads the method and discards it,
+    // where `(channel.play)` calls it.
+    //
+    // An error rather than a warning because there is no program where this is what
+    // was meant, and because the failure is otherwise perfectly silent: no throw,
+    // no return, nothing done.
+    if (e && (e.type === "Member" || e.type === "Index")) {
+      const path = pathOf(e);
+      this.fail(
+        s,
+        `${path} takes hold and releases nothing; write (${path}) to ask it for something`,
+        "GRAMMAR.md §11a",
+      );
+    }
+  }
+
+  // GRAMMAR.md §11a. Rein and leg together: the canonical fault, and the one that
+  // produces conflict behaviour fastest, because the animal is being asked to go and
+  // to stop at the same moment.
+  //
+  // A cue handed across the boundary answers *eventually* -- it is an async function
+  // and it returns a promise. That is right for a listener, which discards what it
+  // gets back. It is wrong for anything that needs the answer now: a promise is
+  // truthy, so a filter keeps everything and a sort reorders nothing, with no error
+  // either way.
+  //
+  // Only detectable for receivers whose names are known. That is a real limit and
+  // §11a says so rather than implying a general rule.
+  opposingSignals(e, scope) {
+    if (!e.callee || e.callee.type !== "Member") return;
+    if (!WANTS_AN_ANSWER_NOW.has(e.callee.name)) return;
+
+    for (const a of e.args) {
+      if (!a || a.type !== "Name") continue;
+      const info = scope.lookup(a.name);
+      if (!info || info.kind !== "cue") continue;
+      this.fail(
+        a,
+        `${JSON.stringify(a.name)} is a cue, and .${e.callee.name} needs its answer ` +
+        `now; a cue answers when it is ready`,
+        "GRAMMAR.md §11a",
+      );
     }
   }
 
@@ -613,6 +672,7 @@ class Resolver {
             this.fail(e, `${JSON.stringify(e.callee.name)} is not a cue`, "GRAMMAR.md §3");
           }
         }
+        this.opposingSignals(e, scope);
         return;
       }
       case "Member":
@@ -722,6 +782,22 @@ function terminates(list) {
 // Is there anything in this body that could end a held gait? A `halt` stops the
 // gait; a `leave` stops the program. Anything nested counts, since a halt inside a
 // `when` is the ordinary way to write the exit.
+// A member path, written back out the way it was written, so an error can quote the
+// line rather than describe it. An index whose subscript is not a literal is shown as
+// `[..]`: naming it would mean evaluating it.
+function pathOf(e) {
+  if (!e) return "?";
+  if (e.type === "Name") return e.name;
+  if (e.type === "Hands") return "hands";
+  if (e.type === "Member") return `${pathOf(e.object)}.${e.name}`;
+  if (e.type === "Index") {
+    const i = e.index;
+    const shown = i && (i.type === "Number" || i.type === "Text") ? JSON.stringify(i.value) : "..";
+    return `${pathOf(e.object)}[${shown}]`;
+  }
+  return "?";
+}
+
 function canStop(list) {
   for (const s of list || []) {
     if (!s || typeof s !== "object") continue;

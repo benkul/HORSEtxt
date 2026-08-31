@@ -95,6 +95,30 @@ remember name as grass in [stored "unnamed"]
 not numbers with suffixes. They do not mix with each other or with bare numbers, and
 `stand 10s within 20px` type-checks because the two positions want different types.
 
+## Reaching into JavaScript
+
+`hands` is the boundary, and it is loud on purpose (GRAMMAR.md §11a).
+
+**A member path alone on a line is an error.** `channel.play` reads the method and throws
+it away; `(channel.play)` calls it. Zero-argument calls need the parens — that is the one
+that catches everybody.
+
+**Cues are callbacks, not functions.** Handing a cue to `addEventListener` is right and
+idiomatic. Handing one to `sort`, `filter`, `map`, `reduce`, `find`, `some`, `every` or
+`flatMap` is refused, because a cue is async and those coerce what they get back: a
+promise is truthy, so nothing would be filtered and nothing sorted, silently.
+
+If you need something sorted, do the work in HORSEtxt and hand JavaScript the result — or
+better, ask whether it is a sort at all. Separating into two groups is a thing horses do;
+ranking a list is not.
+
+**No object literals.** `f({pan: -1})` is unwritable; build it in two lines.
+
+```
+remember opts as hands.JSON.parse "{}"
+opts.pan becomes (0 - 1)
+```
+
 ## What is deliberately absent
 
 No modules beyond `band`/`herd`/`bachelor`. No string library. No math library beyond the

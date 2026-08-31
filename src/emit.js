@@ -403,7 +403,8 @@ class Emitter {
     this.line(`H.pushContext(${JSON.stringify(node.name)}, {`);
     this.indent(() => {
       for (const h of node.handlers) {
-        this.line(`${JSON.stringify(h.signal)}: async (_value, _from) => {`);
+        const carried = h.binding ? js(h.binding) : "_value";
+        this.line(`${JSON.stringify(h.signal)}: async (${carried}, _from) => {`);
         this.indent(() => this.statements(h.body));
         this.line(`},`);
       }

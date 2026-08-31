@@ -301,6 +301,7 @@ export class Horse {
     this.diagnostics = [];
     this.releaseBudget = 1000;  // ms; release is the reinforcer
     this.left = false;          // set when `leave` ends the program
+    this.standing = false;      // the program has finished; the animal is still here
   }
 
   // -------------------------------------------------------------- declarations
@@ -375,6 +376,24 @@ export class Horse {
           return e.value;
         }
         if (e instanceof Balk) {
+          self.checkRelease(name, started);
+          return REFUSED;
+        }
+        // GRAMMAR.md §11a. A `leave` ends the program, and past the point where the
+        // program has ended there is nothing left to end: this cue was called back
+        // into from outside, by a listener or a host, and the animal has answered
+        // into an empty stall. Mejdell's rule cuts both ways -- an answer has to be
+        // given *to* someone.
+        //
+        // Contained and noted rather than thrown, because outside a program a `Leave`
+        // lands in whatever called it: in a browser, an uncaught error in an event
+        // handler, taking the rest of that dispatch with it.
+        if (e instanceof Leave && self.standing) {
+          self.note(
+            `${name} left, and nothing was listening: a leave outside the program ` +
+            `ends nothing`,
+            "GRAMMAR.md §11a",
+          );
           self.checkRelease(name, started);
           return REFUSED;
         }

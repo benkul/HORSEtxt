@@ -521,9 +521,18 @@ class Parser {
         }
         const hk = this.next();
         const sig = this.parseSignalName();
+        // `hears creak as v`. The emitter has always passed the carried value; until
+        // v0.4 there was no way to name it, so a handler could see that a signal had
+        // arrived but not what it brought.
+        let binding = null;
+        if (this.isKw("as")) {
+          this.next();
+          const b = this.expect(T.IDENT, undefined, "§8");
+          binding = b && b.value;
+        }
         this.expect(T.NEWLINE, undefined, "§8");
         const body = this.block("§8");
-        handlers.push(this.node("Handler", hk, { signal: sig, body }));
+        handlers.push(this.node("Handler", hk, { signal: sig, binding, body }));
       }
       this.eat(T.DEDENT);
     }

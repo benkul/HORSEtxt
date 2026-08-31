@@ -655,7 +655,7 @@ context.
 
 ```
 context      = "context" , ident , newline , indent , handler , { handler } , dedent ;
-handler      = "hears" , signal , newline , block ;
+handler      = "hears" , signal , [ "as" , ident ] , newline , block ;
 signal       = "whinny" | "nicker" | "squeal" | "snort" | ident ;
 emission     = signal , [ expression ] , newline ;
 ```
@@ -667,6 +667,15 @@ context's body was a general `block` and no statement form admitted `hears`.)
 **`context` is legal both as a declaration and as a statement**, so a handler can scope to
 a region inside a cue. Contexts are user-definable; the built-in set is not privileged.
 Resolution is lexical then dynamic: nearest enclosing context wins.
+
+**`hears snort as what` names what the signal carried.** The emitter has passed the
+carried value since v0.1 and the language had no way to name it, so a handler could see
+that a signal had arrived and not what it brought — which made contexts a good deal less
+usable than §8 claimed. Closed in v0.4.
+
+The binding belongs to **that handler**, not the context: two handlers for two signals are
+two interpretations, and a name from one has no meaning in the other. `as` is optional; a
+handler that does not care what arrived does not have to name it.
 
 **Signal names are resolved, not guessed.** Because `signal` admits a bare `ident`, an
 emission and a zero-argument statement are lexically identical. The rule: a bare
@@ -904,6 +913,77 @@ every training study, but it names the *relationship* where interop is about *ca
 **Blind spots.** A value held too close cannot be read — a horse cannot see its own
 muzzle. And with 65° binocular of a ~350° field, structural comparison works only in a
 narrow cone ahead: depth is unavailable for most values.
+
+---
+
+## 11a. The hands boundary
+
+`hands` is where the language touches JavaScript, and the name is not decoration: it is
+the human's side of a horse-human interface. §11 makes it flat and unconditioned on
+purpose — laterality, provenance and the effect system stop at it. But *unconditioned*
+had been implemented as *unobserved*, and those are different things.
+
+### Pressure and release
+
+The grammar of horse-human contact is negative reinforcement: the handler applies
+pressure, the animal responds, the pressure is released, and **the release is the
+information**. A signal with no release is not a signal — it teaches nothing, and late
+release punishes the correct response.
+
+**A member path alone on a line is pressure with no release.** `channel.play` reaches
+across the boundary, takes hold of the method and lets go of it without asking anything.
+`(channel.play)` calls it. This is an **error**, not a warning: there is no program where
+the first was meant, and the failure is otherwise perfectly silent — no throw, no return,
+nothing done.
+
+A member read that goes somewhere is fine. `remember v as channel.volume` asked for
+something and something came back.
+
+### Opposing signals
+
+Rein and leg together is the canonical fault, and the one that produces conflict behaviour
+fastest, because the animal is being asked to go and to stop in the same moment.
+
+**A cue handed to something that needs its answer now is that fault.** A cue is async and
+returns a promise. That is exactly right for a listener, which discards what it gets back
+— `addEventListener "click" answer` is good HORSEtxt. It is wrong for anything that
+coerces the return value: a promise is truthy, so `filter` keeps everything and `sort`
+reorders nothing, **with no error either way**.
+
+Refused for a named list of receivers: `sort`, `filter`, `map`, `reduce`, `reduceRight`,
+`find`, `findIndex`, `findLast`, `findLastIndex`, `some`, `every`, `flatMap`. That is a
+real limit and not a general rule — whether a receiver wants its answer now is not
+knowable from the syntax, and the list is where it bites in practice.
+
+**Cues are callbacks, not functions.** That is the sentence to remember.
+
+### Leaving into an empty stall
+
+`leave` ends the program. Past the point where the program has ended there is nothing
+left to end — and a cue handed to the page gets called back into long after the lead mare
+released. Such a `leave` used to travel out as a throw and land in whatever called it: in
+a browser, an uncaught error inside an event handler, taking the rest of that dispatch
+with it.
+
+It is now contained and noted. Mejdell's rule cuts both ways: an answer has to be given
+*to* someone, and an answer with no listener is information about the listener rather than
+a fault in the animal.
+
+### Why loud, and not convenient
+
+A horse cannot fail quietly at the human boundary. Unclear or contradictory signals
+produce **conflict behaviour** — head-tossing, tail-swishing, teeth-grinding, hollowing —
+which is observable, and which the welfare literature is built on reading. Silence arrives
+only at the end of the progression, as learned helplessness.
+
+Before v0.4 this boundary sat permanently at that end. §10 warns that `flood` produces
+learned helplessness, and `hands` was implementing it as a default.
+
+**Still unobserved:** repeated crossings that come back bare. A boundary with weight in it
+would count them per path and report at N, the way `habituates after N` already keys
+habituation to a structural hash of the stimulus. `hands` is `globalThis`, so this cannot
+be done with a proxy without breaking identity and slowing hot paths; the emitter knows
+every path syntactically and could wrap at the emit site instead. Not built. See §13.
 
 ---
 
@@ -1309,14 +1389,39 @@ ported page and one edge case in another. It would not have been cheap at ten pa
 `NaN` landing in bare is the detail worth keeping: it is what a question comes back as when
 it had no answer, which is not an answer of its own.
 
+## 12m. The boundary got weight — v0.4
+
+Six ports had produced six releases, one defect each, and the defect was in the same place
+every time: `hands`. §11 had made it flat and unconditioned by design, and *unobserved* had
+come along for free.
+
+Every one of them was a **silent wrong answer** rather than a crash. `channel.play` did
+nothing. A cue handed to `filter` passed everything. `given or 7` was `true`. `when 0` was
+false. A chord's unnamed channels stayed on the face. None of it threw.
+
+Which is exactly backwards from the animal. A horse cannot fail quietly at the human
+boundary: it produces conflict behaviour, loudly, and only goes silent at the far end of
+the progression as learned helplessness. The language warns about `flood` for that reason
+and had `hands` sitting there permanently.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **Pressure with no release** | A member path alone on a line reads the method and discards it. `channel.play` is silent and does nothing; `(channel.play)` calls it. Three instances in the first sketch of a fourth port, written by someone who knew about the trap | An error, §11a. The release is the information; a signal with no release is not a signal |
+| **Opposing signals** | A cue is async, so JavaScript gets a promise. Right for a listener, which discards it; wrong for `sort` or `filter`, which coerce it — a promise is truthy, so nothing is filtered and nothing is sorted, with no error | Refused for a named list of receivers, §11a. Rein and leg together is the canonical welfare fault, and this is its shape |
+| **`leave` escaped the page** | A cue handed to the page and called back into after the program ended threw `Leave` into an event handler as an uncaught error, taking the rest of that dispatch with it | Contained and noted. An answer has to be given *to* someone; one with no listener says something about the listener |
+| **A handler could not name what arrived** | §13 item 22. The emitter has passed the carried value since v0.1 and `hears` had no binding form, so a handler knew a signal had arrived and not what it brought | `hears snort as what`. The binding belongs to that handler: two handlers are two interpretations |
+
+The half not built is the interesting half — counting crossings that come back bare, and
+reporting at N. That is what would give the boundary weight rather than an alarm, and it
+is a contact rather than a switch. §11a records why it waits.
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
     when a *second* program needs a member.
 19. ~~**The `genotype` tax.**~~ Closed in draft 6, as a real fault rather than a tax.
-22. **A `hears` handler cannot name the value it receives.** `hears creak` has no binding
-    form, so a handler can see that a signal arrived but not what it carried. The emitter
-    passes one; the language cannot reach it. Wants `hears creak as v` or similar.
+22. ~~**A `hears` handler cannot name the value it receives.**~~ Closed in v0.4 —
+    `hears creak as v`, §8.
 24. ~~**Nothing abandons one attempt and keeps the gait.**~~ Closed in v0.3 — `stumble`,
     §5a. A horse that puts a hoof down badly does not stop walking.
 23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
@@ -1332,3 +1437,17 @@ it had no answer, which is not an answer of its own.
 21. **`graze` over `forage`.** `deck.graze` (draw one) and `graze deck as x` (traverse
     all) use the same word for a single draw and a full traversal. Defensible — both are
     grazing — but a reader will trip. Watch.
+25. **The boundary has no weight yet.** §11a catches the two failures a compiler can see
+    and nothing counts crossings that come back bare. A contact is felt continuously and
+    a switch is not, and this is still a switch. Wants per-path counting at the emit site,
+    reusing the structural hash `habituates after N` already keys on. See §11a.
+26. **Cues are not first-class within the language.** `remember f as answer` then `(f)`
+    reports "f is not a cue", so a dispatch table is inexpressible and every branch has to
+    be written out. A cue can be handed *out* to JavaScript, which makes the asymmetry
+    strange. Held back from v0.4 deliberately: it is a resolver and emitter change, and it
+    belongs to a release about dispatch rather than one about the boundary.
+27. **No object literals, and no string escapes.** `f({pan: -1})` is unwritable and so is
+    inline JSON, since `"` cannot be escaped. The workaround is two plain lines —
+    `hands.JSON.parse "{}"` then a member assignment — and principle zero says an options
+    bag has no equine reading, so this may be correct as it stands. Recorded because it
+    turned up in two ports, not because it needs fixing.
