@@ -100,6 +100,11 @@ emission, not with a source map.
 
 Beyond that, the parts of the design still ahead of the implementation:
 
+- **A real debugger.** `src/debugger.js` renders the horse's true state — every
+  emission as a frame, labelled with its locus and the answer it got — and the
+  ears/head states change what you see (see `test/debugger.test.js`,
+  `examples/trace.horse`, and GRAMMAR.md §12n). The trace is live in the playground;
+  what is not built yet is the standalone debugger panel with stepping.
 - **History as semantics.** Trials-to-criterion training, so a newly defined cue is not
   reliable until it has been run. Late-release degradation toward learned helplessness.
   Welfare as a capability gate.

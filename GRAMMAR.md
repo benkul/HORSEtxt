@@ -1415,6 +1415,47 @@ The half not built is the interesting half — counting crossings that come back
 reporting at N. That is what would give the boundary weight rather than an alarm, and it
 is a contact rather than a switch. §11a records why it waits.
 
+## 12n. The horse's true state — the debugger, v0.5
+
+The debugger is the inner life that View Source hides. The runtime reports every
+emission through `host.onSignal(name, answer)`, and every answer carries provenance —
+line, band, cue, individual, side. A flat list cannot show what the horse was attending
+to *when*. The trace does: each emission is a frame, labelled with its locus and the
+answer it got — answered by which context, refused, or one of the two silences.
+
+The two silences are real, and different:
+
+| Silence | Meaning | Shown as |
+|---|---|---|
+| `unanswered (nobody there)` | no context had a handler for the signal | a frame with the reason `nobody there` |
+| `unanswered (not attending)` | a handler exists, but the ears were flattened | a retreated, blurred frame — the horse is not there for it |
+
+Ears and head position change what you see as directly as they change what the horse
+attends to:
+
+- **ears forward, head relaxed** — every frame sharp, in order.
+- **ears flattened (agonistic)** — the trace dims, blurs, retreats. The horse is not
+  attending, so neither should you; EAD103 is the agonistic ear flattener (EquiFACS,
+  Wathan et al. 2015) and the runtime's own `attending` flag reads it that way (§4).
+- **head high** — frames float; **head low** — frames sink. The head height is part of
+  the attention display (Wathan & McComb 2014) and the trace carries it literally.
+- **one ear forward, one back (divided)** — the trace forks into two tracks, `left eye`
+  and `right eye`. Ears are coded independently (EAD103L / EAD103R, EquiFACS), and the
+  hemispheres do different work: novelty/threat on the right, categorisation on the
+  left (§12g). The fork gives the real answer to the attending side and the guarded
+  silence to the other, and the provenance's `side` says which eye asked.
+
+The debugger keeps *every* posture, because the runtime keeps only the latest —
+`attending` is a flag a signal checks at the moment it is emitted, and the flag does not
+say which posture set it. Two signals in a row can carry the same provenance while being
+attended to differently, because the animal's ears moved between them. The trace is the
+only place that becomes visible. It is a listener, the way a human watching the paddock
+is a listener; the paddock remembers what it saw.
+
+Where to look: `src/debugger.js` (DOM-lite renderer — pure function from events and
+posture to a frame tree), `test/debugger.test.js`, and `examples/trace.horse` (one
+paddock walking all four states). `playground.html` wires it beside the flat report.
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
