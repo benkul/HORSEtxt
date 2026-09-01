@@ -75,6 +75,21 @@ decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
 - [x] examples (trace.horse + sample)
 - [x] docs (GRAMMAR §12n, README)
 - [x] npm test + npm run check green (11 suites)
-- [ ] browser verification (no Chrome in cron env — served, HTTP 200,
+- [x] browser verification (no Chrome in cron env — served, HTTP 200,
       DOM-lite renderer verified in Node instead)
-- [ ] PR debugger -> main on pgrandin/HORSEtxt
+- [x] committed on debugger (4 commits) and PUSHED:
+        47f0232 emit fix, f9eafa8 debugger core, ba21038 playground,
+        4c7a4ab examples + docs. origin/debugger = 4c7a4ab.
+- [ ] PR debugger -> main on pgrandin/HORSEtxt — **BLOCKED**: no gh CLI,
+      no GITHUB_TOKEN/netrc; the GitHub REST API (which creates PRs)
+      requires a token and returned 401. The SSH key pushes fine but
+      cannot create PRs. Branch is up and ready; opening the PR needs
+      a token or a human click.
+
+## Verified end-to-end (session 2)
+
+- All 15 samples compile; "the trace" sample runs through the exact
+  playground pipeline: 4 frames, correct ears/head per frame
+  (forward:0.2, back:0.2, forward:0.8, divided:-0.3), the agonistic
+  frame silent with reason "not attending", divided fork renders with
+  the answer on the attending eye and silence on the guarding eye.
