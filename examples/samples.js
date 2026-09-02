@@ -250,4 +250,43 @@ band trace
         ^ ears divided   head ~-0.3 _
         snort
         release`,
+
+  "the moods": `@ storm  12  right bias
+
+band moods
+
+    context field
+        hears snort
+            ^ ears forward   nostrils AD38   tension ~0.1 ^
+            release 1
+
+    lead mare show
+        # 1 - contented. relaxed head, drooping lids.
+        ^ ears forward   head ~0   lids AU143 ^
+        snort
+
+        # 2 - both ears flattened. agonistic (EAD103). not attending.
+        _ ears back _
+        snort
+
+        # 3 - divided attention: one ear forward, one back.
+        ^ ears divided   head ~-0.3 _
+        snort
+
+        # 4 - head high: the horse rears.
+        ^ ears forward   head ~0.85 ^
+        snort
+
+        # 5 - head low: the horse sinks.
+        ^ ears forward   head ~-0.9 ^
+        snort
+
+        # 6 - arousal: flared nostrils, low tail.
+        ^ ears forward   nostrils AD38   tail ~-0.7 ^
+        snort
+
+        # 7 - tense, tail raised.
+        ^ ears forward   tension ~0.8   tail ~0.6 ^
+        snort
+        release`,
 };

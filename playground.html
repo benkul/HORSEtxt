@@ -98,6 +98,24 @@
   #eyes { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
   #trace-controls label { font-size: 0.78rem; color: var(--dim); }
   .trace .hd:hover { text-overflow: clip; overflow: visible; white-space: normal; }
+
+  /* ------------------------------------------------------------------ horse */
+  /* The animal itself, drawn. Ears are attention (EAD101 / EAD103, EquiFACS);
+     an agonistic horse dims and retreats because it is not attending; a high
+     head lifts or rears, a low head sinks; one ear each way is divided
+     attention and the two eyes look different ways. This is state, not
+     decoration — every pose traces to BIBLIOGRAPHY.md. */
+  .horse-panel { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  @media (max-width: 800px) { .horse-panel { grid-template-columns: 1fr; } }
+  #horse { width: 100%; height: auto; display: block; background: var(--warm);
+           border: 1px solid var(--line); border-radius: 4px; }
+  #horse-note { font: 12px "Courier New", monospace; color: var(--dim); margin: 0.4rem 0 0; }
+  .horse-state { font: 12.5px "Courier New", monospace; color: var(--dim);
+                 border: 1px solid var(--line); border-radius: 4px; background: var(--warm);
+                 padding: 0.6rem 0.7rem; margin: 0.4rem 0 0; }
+  .horse-state .pose { color: var(--fg); }
+  .horse-cite { font-size: 0.78rem; color: var(--dim); margin: 0.5rem 0 0; line-height: 1.5; }
+  .horse-cite code { background: transparent; }
 </style>
 </head>
 <body>
@@ -169,6 +187,32 @@ band welcome
 <div id="trace">&nbsp;</div>
 <p class="note" id="trace-note">&nbsp;</p>
 
+<h2>the horse &mdash; what the program has put it in</h2>
+<div class="horse-panel">
+  <div>
+    <div id="horse">&nbsp;</div>
+    <p class="note" id="horse-note">&nbsp;</p>
+  </div>
+  <div>
+    <div class="horse-state" id="horse-state">no utterance yet</div>
+    <p class="horse-cite">
+      The same stream the trace reads, drawn as the animal. Ears are attention
+      (EAD101 forward / EAD103 flattening, EquiFACS &mdash; Wathan et al. 2015):
+      a flattened ear is agonistic and the horse is <em>not attending</em>, so
+      the whole body dims and retreats (GRAMMAR.md &sect;4; runtime
+      <code>attending = ears !== "agonistic"</code>). Ears aim independently on
+      ten muscles, 180&deg; (Wathan &amp; McComb 2014), so one ear each way is
+      divided attention and the two eyes look different ways, because the
+      hemispheres do different work (&sect;12g). Head height is part of the
+      attention display (Wathan &amp; McComb 2014): a high head lifts or rears,
+      a low head sinks. Nostril flare, lid droop, tail carriage and tension all
+      trace to the ethogram (Lewis et al. 2025) and the reinforcement spine.
+      If it cannot be cited, it is not a state change &mdash; it is decoration,
+      and decoration is a bug.
+    </p>
+  </div>
+</div>
+
 <h2>try it</h2>
 <div class="grid">
   <div>
@@ -190,6 +234,7 @@ band welcome
 import { compile, runSource, browserHost, blocks } from "./src/browser.js";
 import { SAMPLES } from "./examples/samples.js";
 import { Trace, accept, begin, finish, render } from "./src/debugger.js";
+import { HorseView, renderHorse } from "./src/horse.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -273,7 +318,10 @@ let struck = postureOf({ ears: "forward", head: 0, states: [] });
 function el(node) {
   const e = document.createElement(node.tag || "div");
   const attrs = node.attrs || {};
+  // A fork is { cls, children } — the cls sits on the node itself, not in
+  // attrs, so el() must read both or the fork renders without its class.
   if (typeof attrs.cls === "string") e.className = attrs.cls;
+  else if (typeof node.cls === "string") e.className = node.cls;
   if (attrs.style) for (const [k, val] of Object.entries(attrs.style)) e.style[k] = val;
   if (attrs.attrs) for (const [k, val] of attrs.attrs) e.setAttribute("data-" + k, val);
   if (attrs.bend != null) e.style.setProperty("--bend", `${attrs.bend}px`);
@@ -309,6 +357,60 @@ function draw(t, live = false) {
     `nobody there ${t.unansweredByReason["nobody there"] || 0}) \u00b7 ` +
     `attention depth ${n.depth || 1}`;
 }
+
+// -- the horse ----------------------------------------------------------------
+// The same stream the trace reads, drawn as the animal. The horse never lies:
+// this panel shows the posture the horse actually struck, not an override.
+const horseView = new HorseView();
+
+// An SVG vnode is { tag, svg: true, attrs, kids }; attrs are real SVG
+// attributes (transform, fill, d, ...), set with setAttribute so numbers
+// survive verbatim. Text is never interpolated into markup.
+function svgel(node) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", node.tag);
+  for (const [k, val] of Object.entries(node.attrs || {})) e.setAttribute(k, val);
+  for (const k of node.kids || []) e.appendChild(svgel(k));
+  return e;
+}
+
+function poseline(d) {
+  const ears = d.ears === "agonistic" ? "ears flattened \u2014 not attending"
+    : d.ears === "divided" ? "ears divided \u2014 one eye each way"
+    : "ears forward";
+  const head = d.rearing > 0 ? "head high \u2014 rearing"
+    : d.head > 0.18 ? "head high"
+    : d.sunk > 0 ? "head low \u2014 sunk"
+    : d.head < -0.18 ? "head low"
+    : "head relaxed";
+  const bits = [ears, head];
+  if (d.nostril > 0.7) bits.push("nostrils flared");
+  if (d.lid > 0.6) bits.push("lids drooped");
+  if (d.tailLash) bits.push("tail lashing");
+  else if (d.tail > 0.5) bits.push("tail raised");
+  else if (d.tail < -0.5) bits.push("tail low");
+  if (d.tension > 0.5) bits.push("tense");
+  return bits.join(" \u00b7 ");
+}
+
+function drawHorse() {
+  const d = horseView.desc;
+  const out = $("horse");
+  if (!d) { out.replaceChildren(); $("horse-note").textContent = ""; return; }
+  out.replaceChildren();
+  out.appendChild(svgel(renderHorse(d)));
+  $("horse-state").textContent = poseline(d);
+  const channels = d.channels.length ? d.channels.join(", ") : "(no channels uttered)";
+  $("horse-note").textContent =
+    `posture: ${d.ears} \u00b7 head ${d.head >= 0 ? "+" : ""}${d.head.toFixed(2)}` +
+    ` \u00b7 channels: ${channels}` +
+    (d.attendPulse ? " \u00b7 just attended" : "");
+}
+horseView.on(() => drawHorse());
+
+// A horse is a horse before it says anything (the trace's own `begin` seeds
+// the first posture). The panel stands a contented horse until the first
+// utterance moves it — the program has not spoken yet, so this is the truth.
+horseView.chord({ ears: "forward", states: [{ channel: "head", value: 0 }] });
 
 async function go() {
   const source = $("src").value;
@@ -359,12 +461,19 @@ async function go() {
       t.addPosture(pos);
       events.push(["chord", p]);
       host.onChord(p); showPosture();
+      // The drawn horse reads the same chord. The anchor is a real chord
+      // too (the horse idles back to forward ears) but it must not erase
+      // the utterance: only non-anchor postures move the animal.
+      if (!isAnchor) horseView.chord(p);
     },
     onSignal: (name, answer) => {
       // The signal fired while `struck` was in force — before the next
       // anchor. Hand the exact posture so the frame is not misattributed.
       accept(t, name, answer, struck);
       events.push(["signal", name, answer]);
+      // The horse visibly attends when a signal lands — a transient nostril
+      // flare and ear flick that decay, then the posture holds.
+      horseView.signal(name, answer);
     },
   });
   finish(t);
