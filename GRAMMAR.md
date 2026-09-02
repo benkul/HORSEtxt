@@ -1455,6 +1455,15 @@ is a listener; the paddock remembers what it saw.
 Where to look: `src/debugger.js` (DOM-lite renderer — pure function from events and
 posture to a frame tree), `test/debugger.test.js`, and `examples/trace.horse` (one
 paddock walking all four states). `playground.html` wires it beside the flat report.
+Renders, captured from the live playground (`docs/trace/`): the trace under the horse's
+own attention, the agonistic retreat, and the divided fork.
+
+| State | Render |
+|---|---|
+| the trace, horse's own attention | ![trace-normal](docs/trace/trace-normal.webp) |
+| ears flattened (agonistic) — the trace retreats | ![trace-agonistic](docs/trace/trace-agonistic.webp) |
+| one ear forward, one back — the fork | ![trace-divided-fork](docs/trace/trace-divided-fork.webp) |
+
 
 ## 13. Still open
 
