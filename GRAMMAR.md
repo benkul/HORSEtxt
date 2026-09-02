@@ -1415,6 +1415,103 @@ The half not built is the interesting half — counting crossings that come back
 reporting at N. That is what would give the boundary weight rather than an alarm, and it
 is a contact rather than a switch. §11a records why it waits.
 
+## 12n. The horse's true state — the debugger, v0.5
+
+The debugger is the inner life that View Source hides. The runtime reports every
+emission through `host.onSignal(name, answer)`, and every answer carries provenance —
+line, band, cue, individual, side. A flat list cannot show what the horse was attending
+to *when*. The trace does: each emission is a frame, labelled with its locus and the
+answer it got — answered by which context, refused, or one of the two silences.
+
+The two silences are real, and different:
+
+| Silence | Meaning | Shown as |
+|---|---|---|
+| `unanswered (nobody there)` | no context had a handler for the signal | a frame with the reason `nobody there` |
+| `unanswered (not attending)` | a handler exists, but the ears were flattened | a retreated, blurred frame — the horse is not there for it |
+
+Ears and head position change what you see as directly as they change what the horse
+attends to:
+
+- **ears forward, head relaxed** — every frame sharp, in order.
+- **ears flattened (agonistic)** — the trace dims, blurs, retreats. The horse is not
+  attending, so neither should you; EAD103 is the agonistic ear flattener (EquiFACS,
+  Wathan et al. 2015) and the runtime's own `attending` flag reads it that way (§4).
+- **head high** — frames float; **head low** — frames sink. The head height is part of
+  the attention display (Wathan & McComb 2014) and the trace carries it literally.
+- **one ear forward, one back (divided)** — the trace forks into two tracks, `left eye`
+  and `right eye`. Ears are coded independently (EAD103L / EAD103R, EquiFACS), and the
+  hemispheres do different work: novelty/threat on the right, categorisation on the
+  left (§12g). The fork gives the real answer to the attending side and the guarded
+  silence to the other, and the provenance's `side` says which eye asked.
+
+The debugger keeps *every* posture, because the runtime keeps only the latest —
+`attending` is a flag a signal checks at the moment it is emitted, and the flag does not
+say which posture set it. Two signals in a row can carry the same provenance while being
+attended to differently, because the animal's ears moved between them. The trace is the
+only place that becomes visible. It is a listener, the way a human watching the paddock
+is a listener; the paddock remembers what it saw.
+
+Where to look: `src/debugger.js` (DOM-lite renderer — pure function from events and
+posture to a frame tree), `test/debugger.test.js`, and `examples/trace.horse` (one
+paddock walking all four states). `playground.html` wires it beside the flat report.
+Renders, captured from the live playground (`docs/trace/`): the trace under the horse's
+own attention, the agonistic retreat, and the divided fork.
+
+| State | Render |
+|---|---|
+| the trace, horse's own attention | ![trace-normal](docs/trace/trace-normal.webp) |
+| ears flattened (agonistic) — the trace retreats | ![trace-agonistic](docs/trace/trace-agonistic.webp) |
+| one ear forward, one back — the fork | ![trace-divided-fork](docs/trace/trace-divided-fork.webp) |
+
+### 12n.1 The horse itself, drawn — v0.6
+
+The flame graph is the skeleton. The debugger now gives it the animal: a real horse,
+drawn in the page (SVG), standing beside the trace and reading the same stream. It is
+not a mascot — it is state. Watch the horse and you are watching the program.
+
+Every posture the panel embodies traces to the same citations as the trace, and a pose
+that cannot be cited is decoration, and decoration is a bug:
+
+- **Ears are attention** — EAD101 forward is attention, EAD103 is the agonistic ear
+  flattener (EquiFACS, Wathan et al. 2015), and the runtime's own `attending` flag says
+  an agonistic animal is *not attending* (§4). So the drawn horse flattens both ears
+  and its whole body dims and retreats — you cannot read what the horse is not
+  attending to.
+- **Ears aim independently** — EAD103L / EAD103R are coded separately (EquiFACS), and a
+  horse rotates its ears 180deg on ten muscles (Wathan & McComb 2014). A divided chord
+  draws one ear forward and one back, and the two eyes look different ways, because the
+  hemispheres do different work — novelty/threat on the right, categorisation on the
+  left (§12g).
+- **Head height is part of the attention display** (Wathan & McComb 2014). The head
+  channel is a signed tissue fraction; the drawing carries it literally — a high head
+  lifts, and past a threshold the horse rears; a low head sinks.
+- **Nostrils flare with arousal** (ethogram, Lewis et al. 2025); **lids droop** at the
+  relaxed/dozing end (EquiFACS eyelid AUs); **tail carriage and swishing** are
+  agitation displays (ethogram; weather `flies` is the largest behavioural driver);
+  **tension** is the reinforcement spine (Applied Animal Behaviour Science 2025, cited
+  in runtime.js) and tightens the neck and darkens the body.
+
+The drawn horse also visibly attends: when a signal lands it flares a nostril and
+flicks an ear, then the posture holds. The debugging flow and the animal are the same
+thing — you read the program by reading the horse. Grotesque where the state is
+grotesque, still where the horse is content.
+
+Where to look: `src/horse.js` (`postureState` is the pure posture descriptor — the
+testable truth; `renderHorse` projects it into an SVG vnode tree), `test/horse.test.js`,
+and `examples/moods.horse` (the same paddock walking all the body states).
+`playground.html` draws it beside the trace. Renders, captured from the live playground
+(`docs/horse/`):
+
+| State | Render |
+|---|---|
+| contented — ears forward, head relaxed | ![horse-contented](docs/horse/horse-contented.webp) |
+| agonistic / retreated — ears flattened, not attending | ![horse-agonistic](docs/horse/horse-agonistic.webp) |
+| divided attention — one ear each way, eyes split | ![horse-divided](docs/horse/horse-divided.webp) |
+| head high — the horse rears | ![horse-rearing](docs/horse/horse-rearing.webp) |
+| head low — the horse sinks | ![horse-sunken](docs/horse/horse-sunken.webp) |
+
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only

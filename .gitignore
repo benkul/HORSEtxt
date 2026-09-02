@@ -1,0 +1,5 @@
+# local debugger screenshot harness (playwright venv + raw captures).
+# the shipped screenshots live in docs/trace/ and docs/horse/ as webp.
+.shots/
+.venv/
+__pycache__/

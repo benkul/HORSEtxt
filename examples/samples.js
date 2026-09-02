@@ -221,4 +221,72 @@ band looking
 
     lead mare go
         release`,
+
+  "the trace": `@ trail  8  left bias
+
+band trace
+
+    context field
+        hears snort
+            ^ ears forward   nostrils AD38   tension ~0.1 ^
+            release 1
+
+    lead mare show
+        # 1 - attending. answered, sharp, head ~0.2.
+        ^ ears forward   head ~0.2 ^
+        snort
+
+        # 2 - both ears flattened. agonistic. not attending.
+        # the handler exists but the horse is not there for it.
+        _ ears back _
+        snort
+
+        # 3 - attending again, head high: frames float.
+        ^ ears forward   head ~0.8 ^
+        snort
+
+        # 4 - one ear forward, one back: divided attention.
+        # the trace forks: left eye reads novelty, right eye reads category.
+        ^ ears divided   head ~-0.3 _
+        snort
+        release`,
+
+  "the moods": `@ storm  12  right bias
+
+band moods
+
+    context field
+        hears snort
+            ^ ears forward   nostrils AD38   tension ~0.1 ^
+            release 1
+
+    lead mare show
+        # 1 - contented. relaxed head, drooping lids.
+        ^ ears forward   head ~0   lids AU143 ^
+        snort
+
+        # 2 - both ears flattened. agonistic (EAD103). not attending.
+        _ ears back _
+        snort
+
+        # 3 - divided attention: one ear forward, one back.
+        ^ ears divided   head ~-0.3 _
+        snort
+
+        # 4 - head high: the horse rears.
+        ^ ears forward   head ~0.85 ^
+        snort
+
+        # 5 - head low: the horse sinks.
+        ^ ears forward   head ~-0.9 ^
+        snort
+
+        # 6 - arousal: flared nostrils, low tail.
+        ^ ears forward   nostrils AD38   tail ~-0.7 ^
+        snort
+
+        # 7 - tense, tail raised.
+        ^ ears forward   tension ~0.8   tail ~0.6 ^
+        snort
+        release`,
 };
