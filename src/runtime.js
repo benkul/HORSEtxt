@@ -707,9 +707,41 @@ export class Horse {
       if (otherwise) return otherwise();
       throw new Balk("nothing to hold still against");
     }
+
+    // The body is the one place in the language where a statement runs inside a
+    // *host* callback, and a host is right to be defensive about what it calls:
+    // `browserHost` catches so that a throwing body cannot break its animation
+    // frame. But an outcome is not a failure. `balk`, `leave`, `blank` and
+    // `release` are how a path out of a cue names itself (§10), and until v0.5.1
+    // every one of them raised inside a stand body was swallowed by the host and
+    // the cue simply carried on past the stand.
+    //
+    // So the outcome is caught here, on the language's side of that boundary, and
+    // raced against the hold. The animal stopped standing when it said so, not
+    // when the clock ran out — a hold abandoned at one second of ten does not go
+    // on holding for nine more.
+    let raised = null;
+    let abandon;
+    const abandoned = new Promise((_, reject) => { abandon = reject; });
+
+    const guarded = async (t) => {
+      if (raised) return undefined;   // it has already answered; do not ask again
+      try {
+        return await body(t);
+      } catch (e) {
+        raised = e;
+        abandon(e);
+        throw e;                      // a host that does look still sees it
+      }
+    };
+
     // A stand is the one construct whose whole content is spending time, so none of
     // it is lateness.
-    const held = await this.waited(ms, () => this.host.hold({ ms, jitter, onProgress: body }));
+    const held = await this.waited(ms, () => Promise.race([
+      this.host.hold({ ms, jitter, onProgress: guarded }),
+      abandoned,
+    ]));
+
     if (!held && otherwise) return otherwise();
     if (!held) throw new Balk("the hold broke");
     return undefined;

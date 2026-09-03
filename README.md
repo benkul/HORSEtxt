@@ -20,13 +20,18 @@ band gallery
 
 ## Status
 
-**v0.5 runs, in the page, and carries three live pages.** Lexer, parser, resolver,
+**v0.5.1 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
 emitter, runtime, browser loader, host, CLI, and a playground.
 
 Since v0.1: the body and its limits (v0.2), what a horse counts as true (v0.3), the
 `hands` boundary made loud (v0.4), and the boundary given weight — plus cues that can be
 held under another name and called back (v0.5). `GRAMMAR.md` §12 records what each
 release found and what it cost; §13 is what is still open.
+
+Every release so far was found the same way: by porting a real page onto the previous
+one. §12o is the most recent, and the shortest summary of the method — the port needed
+one thing, the language could not do it, and the reason was a boundary nobody had
+looked at.
 
 ```
 npm test      # lexer, parser, resolver, emitter, loader
@@ -120,7 +125,7 @@ Beyond that, the parts of the design still ahead of the implementation:
   not built without a measurement.
 
 The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
-§12–§12n, one section per release, and everything still open in §13. Worked programs are
+§12–§12o, one section per release, and everything still open in §13. Worked programs are
 in `examples/`.
 
 ## What it is
@@ -175,7 +180,7 @@ Nothing is arbitrary. If a rule cannot be traced to a citation, it is a bug.
 ## Where the reasoning lives
 
 - `BIBLIOGRAPHY.md` — the manual. Every construct, and the paper it comes from.
-- `GRAMMAR.md` §12–§12n — every gap the implementation found, in the order it found them,
+- `GRAMMAR.md` §12–§12o — every gap the implementation found, in the order it found them,
   with what changed and why. Read as a record of a design meeting reality. §13 is what is
   still open, including the things deliberately left alone.
 - `STDLIB.md` — what the small standard library holds, and what it deliberately omits.

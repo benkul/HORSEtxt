@@ -1515,6 +1515,44 @@ on the far side of the boundary, which is where lateness actually comes from, an
 written with a cue handed to `new hands.Promise` — a program that could not have been
 written before item 26 closed.
 
+## 12o. A stand could not be abandoned — v0.5.1
+
+Found by porting `components/losses-exposure.js`, which is the program §12 has been
+pointing at since draft 1: it is the `stand` primitive, it already existed in JavaScript,
+and the diff is the honest test.
+
+The port needed one thing the JavaScript did for free — end the exposure when the pointer
+leaves the row. A row can be wider than the jitter radius, so leaving it is a different
+fact from drifting twenty pixels, and the natural way to say it is a `balk` in the stand's
+body. It did nothing. The cue carried straight on past the stand and revealed the image
+against nobody.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **Outcomes died in the host** | A stand's body is the one place a statement runs inside a *host* callback. `browserHost` calls it as `Promise.resolve(onProgress(t)).catch(() => {})` — so `balk`, `leave`, `blank` and `release` raised in a stand body were all discarded, and execution continued past the stand. Silent, since none of them is an error | Caught on the language's side of that boundary and raced against the hold. §7 |
+
+**The host is not at fault, and was not changed.** A host must not crash on a body it
+calls; catching is the right thing for it to do. What was wrong is that the language
+handed something across that boundary and then trusted the far side to preserve its
+semantics. That is the same mistake §12m found in `hands`, arriving from the other
+direction: there the language was silent about what came *back*, here it was silent about
+what went *out*.
+
+The hold is raced rather than merely flagged, so an exposure abandoned at one second of
+ten does not go on holding for nine more. The animal stopped standing when it said so.
+
+**Two more things this port found, both left alone:**
+
+- Four separate zero-argument calls were written as bare member paths (`hands.EN_ROOM.build`
+  rather than `(hands.EN_ROOM.build)`) across three converted pages, by someone who had
+  just finished writing the rule. §11a caught every one at compile time. `STDLIB.md` calls
+  this "the one that catches everybody" and the evidence is that it is right.
+- `examples/listening.horse` said `leave` where it meant `balk`, and had since v0.1: the
+  first silent channel ended the whole program, so no channel ever opened and the pulse
+  never started. `npm run check` passed it for five releases, because `check` resolves a
+  program and does not listen to one. The examples are now asked what they did rather than
+  only whether they survived.
+
 ## 13. Still open
 
 17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
@@ -1527,6 +1565,15 @@ written before item 26 closed.
 23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
     member name survives to runtime. That is the price of `hands` being a flat boundary
     onto JavaScript, and it is probably the right price.
+
+    One corner of it turned up while porting: `when hands.SOMETHING.ready` reads the
+    *method* and asks whether it is there, which it always is. The information wanted was
+    what it answers, and `(hands.SOMETHING.ready)` is how to ask. §11a refuses this shape
+    as a statement and cannot refuse it here, because in a condition the path does go
+    somewhere — and because testing that a method exists is **feature detection**, which
+    is legitimate and common at this boundary. Not fixable without knowing what is on the
+    other side, which is item 23 itself. The half that *is* catchable — a path that comes
+    back bare — is now counted (§11a).
 18. **The voice channels went unused.** Across four ported programs `whinny` and `nicker`
     never appeared, and `snort`/`squeal` only inside a `context` that assigned their
     meaning locally. Evidence that voice is a smaller part of the language than the design
@@ -1553,6 +1600,16 @@ written before item 26 closed.
     site, said once at three, then habituated. §11a.
 26. ~~**Cues are not first-class within the language.**~~ Closed in v0.5 — a name is
     followed home to the cue it holds. §3.
+30. **A duration cannot be computed.** Durations and distances do not mix with numbers
+    (`STDLIB.md`), which is right for `10s + 3` and wrong for `10s * 0.5`. Scaling a
+    quantity by a scalar is dimensionally sound, and adding two durations is too — but
+    neither is expressible, so **a gait's interval cannot vary at runtime**. Found
+    porting `static.html`, where transmissions arrived every 8–18 seconds: there is no
+    way to say that. The workaround is a steady gait and a counter, which reads better
+    than the arithmetic would have, so this is recorded rather than fixed. What would
+    settle it is a second program wanting a computed interval — and the honest question
+    first, which is whether a horse has any concept of a *varying* tempo, or only of a
+    gait it is in.
 29. **A value cannot be waited on.** A cue can now be handed to `new hands.Promise`, so
     the language can *produce* a promise — and it has no way to wait on one it is holding.
     Awaiting happens only at call sites, so `remember p as ...` then wanting its answer
