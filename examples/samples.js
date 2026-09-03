@@ -133,17 +133,21 @@ band looking
 
   "a late release is punishing": `band slow
 
-    forage strides of 1 through 5
+    # the release is the reinforcer, and releasing late does not merely take
+    # longer: it punishes the response that should have been rewarded. lateness
+    # belongs to whoever is slow to let go, and here that is the far side of the
+    # boundary -- this cue is handed to javascript, which keeps it for a second
+    # and a half before calling it back.
+    #
+    # time spent standing, or between the strides of a gait, is not this. that is
+    # the animal taking the time it was told to take, and it answered immediately.
+    cue lets-go-eventually settle refuse
+        hands.setTimeout settle 1500
+        release
 
-    # the release is the reinforcer. releasing late does not merely take longer:
-    # it punishes the response it should reward. this cue takes well over a second
-    # to release, and says so.
     lead mare dawdle
-        walk every 300ms
-            when strides.empty
-                halt
-            ^ tension ~(strides.graze / 5) ^
-        release`,
+        remember asked as new hands.Promise lets-go-eventually
+        release (asked.then)`,
 
   "nothing, and none": `band counting
 
@@ -189,6 +193,35 @@ band looking
         remember answer as (creaked "the far gate")
         ^ tension ~0.2 ^
         release answer`,
+
+  "a cue held under another name": `band naming
+
+    # a cue in expression position is the cue itself. the grammar has said so
+    # since v0.1, and until v0.5 it was only half true: a cue could be handed out
+    # to javascript and could not be called back inside the language. so every
+    # branch had to be written out, and a table of them was inexpressible.
+    #
+    # the name a call is written under is the handler's word for the signal, not a
+    # second signal. training does not follow the word: it stays with the cue, and
+    # the count is kept against the name it was taught under.
+
+    cue soft
+        release "soft"
+
+    cue loud
+        release "loud"
+
+    cue answer-with f
+        release (f)
+
+    cue for-the-hour hour
+        when (hour < 7)
+            release soft
+        release loud
+
+    lead mare speak
+        remember chosen as (for-the-hour 3)
+        release (answer-with chosen)`,
 
   "a stride that did not land": `band footing
 

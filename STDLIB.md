@@ -103,10 +103,20 @@ not numbers with suffixes. They do not mix with each other or with bare numbers,
 it away; `(channel.play)` calls it. Zero-argument calls need the parens — that is the one
 that catches everybody.
 
+**A path that keeps coming back bare is reported.** Three unanswered crossings in a row at
+one path and the boundary says so, once, and then habituates. An answer resets the count,
+and `0`, `""` and `[]` are answers — §8a decides what nothing is, and the boundary agrees
+with it. A note at runtime rather than a compile error: a lookup that misses is ordinary,
+and a lookup that never lands is a question nobody is answering.
+
 **Cues are callbacks, not functions.** Handing a cue to `addEventListener` is right and
 idiomatic. Handing one to `sort`, `filter`, `map`, `reduce`, `find`, `some`, `every` or
 `flatMap` is refused, because a cue is async and those coerce what they get back: a
 promise is truthy, so nothing would be filtered and nothing sorted, silently.
+
+That is a fact about the *boundary*, not a claim that cues are second-class inside the
+language. A cue held under another name is the same cue and calls fine — `remember f as
+draw`, then `(f)` — which is how a dispatch table is written (§3).
 
 If you need something sorted, do the work in HORSEtxt and hand JavaScript the result — or
 better, ask whether it is a sort at all. Separating into two groups is a thing horses do;

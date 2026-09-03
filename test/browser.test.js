@@ -383,6 +383,10 @@ T("the samples demonstrate what they claim", async () => {
     `expected a late-release note, got: ${JSON.stringify(late.horse.diagnostics)}`,
   );
 
+  // a cue held under another name is the same cue, and answers as itself
+  const named = await runSource(SAMPLES["a cue held under another name"], "s.horse", {});
+  ok(!named.threw, named.threw && named.threw.message);
+
   // a held gait halts itself rather than running forever
   const held = await runSource(SAMPLES["halting a held gait"], "s.horse", {});
   ok(!held.threw, "the halt ended the gait");

@@ -194,6 +194,134 @@ T("a handler with no binding still works", async () => {
   ok(!r.threw, r.threw && r.threw.message);
 });
 
+// ----------------------------------------------------------------- boundary weight
+//
+// GRAMMAR.md §11a. Through v0.4 the boundary caught the two faults a compiler can
+// see and then went quiet forever, which made it a switch. A contact is felt
+// continuously. Every crossing that comes back bare is a signal given and not
+// answered, and a run of them at one path is the handler asking the same question
+// and getting nothing back.
+
+const notesOf = (r) => (r.horse ? r.horse.diagnostics.map((d) => d.message) : []);
+
+const asking = (n) => band([
+  "lead mare go",
+  ...Array.from({ length: n }, (_, i) => `    remember v${i} as hands.OUT.find ${i}`),
+  "    release",
+]);
+
+T("a run of bare crossings at one path is reported", async () => {
+  globalThis.OUT = { find: () => null };
+  const r = await runSource(asking(3), "t.horse", { stop: () => true });
+  ok(!r.errors.length, JSON.stringify(r.errors));
+  ok(notesOf(r).some((m) => /came back bare 3 times/.test(m)), JSON.stringify(notesOf(r)));
+});
+
+T("and it says which path went unanswered", async () => {
+  globalThis.OUT = { find: () => null };
+  const r = await runSource(asking(3), "t.horse", { stop: () => true });
+  ok(notesOf(r).some((m) => /hands\.OUT\.find/.test(m)), JSON.stringify(notesOf(r)));
+});
+
+T("two crossings are not a run", async () => {
+  globalThis.OUT = { find: () => null };
+  const r = await runSource(asking(2), "t.horse", { stop: () => true });
+  eq(notesOf(r), [], "two is a coincidence");
+});
+
+// Pressure that is sometimes released is a different signal from pressure that is
+// never released, and only the second one is worth saying out loud.
+T("an answer in the middle resets the count", async () => {
+  let n = 0;
+  globalThis.OUT = { find: () => (++n === 2 ? "here" : null) };
+  const r = await runSource(asking(4), "t.horse", { stop: () => true });
+  eq(notesOf(r), [], "it was answered once, so nothing went unreleased three times");
+});
+
+// Habituation, the same shape as `habituates after N` (§10). Saying it every time
+// would be the flooding the language already warns about.
+T("it is said once and then habituates", async () => {
+  globalThis.OUT = { find: () => null };
+  const r = await runSource(asking(6), "t.horse", { stop: () => true });
+  eq(notesOf(r).length, 1, "one note, not four");
+});
+
+// The stimulus is the path, not the occasion — two paths are two questions, and
+// neither of them has gone unanswered three times.
+T("separate paths are counted separately", async () => {
+  globalThis.OUT = { find: () => null, get: () => null };
+  const r = await runSource(
+    band([
+      "lead mare go",
+      "    remember a as hands.OUT.find 1",
+      "    remember b as hands.OUT.get 2",
+      "    remember c as hands.OUT.find 3",
+      "    remember d as hands.OUT.get 4",
+      "    release",
+    ]),
+    "t.horse", { stop: () => true },
+  );
+  eq(notesOf(r), [], "two questions, asked twice each");
+});
+
+// An index is not part of the shape, for the same reason: `images[0]` and
+// `images[1]` are one question asked twice, not two questions.
+T("indices collapse into one path", async () => {
+  globalThis.OUT = { images: [null, null, null] };
+  const r = await runSource(
+    band([
+      "lead mare go",
+      "    remember p as hands.OUT.images[0]",
+      "    remember q as hands.OUT.images[1]",
+      "    remember s as hands.OUT.images[2]",
+      "    release",
+    ]),
+    "t.horse", { stop: () => true },
+  );
+  ok(!r.errors.length, JSON.stringify(r.errors));
+  ok(
+    notesOf(r).some((m) => /hands\.OUT\.images\[\] came back bare 3 times/.test(m)),
+    JSON.stringify(notesOf(r)),
+  );
+});
+
+// §8a. Zero is a quantity and absence is not. The boundary has to agree with the
+// rest of the language about what nothing is, or it reports a working page.
+T("a crossing that answers zero has been answered", async () => {
+  globalThis.OUT = { find: () => 0 };
+  const r = await runSource(asking(3), "t.horse", { stop: () => true });
+  eq(notesOf(r), [], "0 is a thing that is there");
+});
+
+T("a write across the boundary is not a question", async () => {
+  globalThis.OUT = { held: 1 };
+  const r = await runSource(
+    band([
+      "lead mare go",
+      "    hands.OUT.held becomes 1",
+      "    hands.OUT.held becomes 2",
+      "    hands.OUT.held becomes 3",
+      "    release",
+    ]),
+    "t.horse", { stop: () => true },
+  );
+  ok(!r.errors.length, JSON.stringify(r.errors));
+  eq(notesOf(r), [], "nothing was asked for");
+});
+
+// A note is said when it happens. Most of what the animal has to say happens after
+// the lead mare has released — in a gait, or in a cue the page kept — and a report
+// delivered at the end of the program would be delivered before any of it.
+T("a note reaches the host as it happens", async () => {
+  globalThis.OUT = { find: () => null };
+  const said = [];
+  const r = await runSource(
+    asking(3), "t.horse", { stop: () => true, onNote: (n) => said.push(n.message) },
+  );
+  ok(!r.errors.length, JSON.stringify(r.errors));
+  ok(said.some((m) => /came back bare/.test(m)), JSON.stringify(said));
+});
+
 // ------------------------------------------------------------------------- report
 
 for (const [name, fn] of queue) {

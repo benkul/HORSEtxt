@@ -20,8 +20,13 @@ band gallery
 
 ## Status
 
-**v0.1 runs, in the page.** Lexer, parser, resolver, emitter, runtime, browser loader,
-host, CLI, and a playground.
+**v0.5 runs, in the page, and carries three live pages.** Lexer, parser, resolver,
+emitter, runtime, browser loader, host, CLI, and a playground.
+
+Since v0.1: the body and its limits (v0.2), what a horse counts as true (v0.3), the
+`hands` boundary made loud (v0.4), and the boundary given weight — plus cues that can be
+held under another name and called back (v0.5). `GRAMMAR.md` §12 records what each
+release found and what it cost; §13 is what is still open.
 
 ```
 npm test      # lexer, parser, resolver, emitter, loader
@@ -107,10 +112,16 @@ Beyond that, the parts of the design still ahead of the implementation:
   one system for moving an animal that would rather you did not, and the size of a flight
   zone is set by handling history. Only the point of balance exists today; the other two
   wait for the individual to have a history to be sized by.
-- `hears creak as v` — a handler can see that a signal arrived but not what it carried.
+- **Waiting on a value.** A cue can be handed to `new hands.Promise`, so the language can
+  produce a promise and has no way to wait on one it is holding — awaiting happens only
+  at call sites. §13 item 29 records why that is not simply a missing keyword.
+- **Work somewhere else.** A `bachelor` group is already an isolate by its own definition,
+  which is where off-thread work would belong. Designed in §13 item 28 and deliberately
+  not built without a measurement.
 
 The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
-§12a–§12e. Worked programs are in `examples/`.
+§12–§12n, one section per release, and everything still open in §13. Worked programs are
+in `examples/`.
 
 ## What it is
 
@@ -164,8 +175,9 @@ Nothing is arbitrary. If a rule cannot be traced to a citation, it is a bug.
 ## Where the reasoning lives
 
 - `BIBLIOGRAPHY.md` — the manual. Every construct, and the paper it comes from.
-- `GRAMMAR.md` §12a–§12e — every gap the implementation found, in the order it found
-  them, with what changed and why. Read as a record of a design meeting reality.
+- `GRAMMAR.md` §12–§12n — every gap the implementation found, in the order it found them,
+  with what changed and why. Read as a record of a design meeting reality. §13 is what is
+  still open, including the things deliberately left alone.
 - `STDLIB.md` — what the small standard library holds, and what it deliberately omits.
 
 ## Licence

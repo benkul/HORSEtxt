@@ -196,6 +196,12 @@ export function pile(key) { return new Pile(key); }
 
 const NATURAL_BAND = 8; // one stallion, two to four mares, and offspring
 
+// How many unanswered crossings of one `hands` path before the boundary says so
+// (GRAMMAR.md §11a). Three, and this one is a choice rather than a finding: two is
+// a coincidence and four has already been three. It is deliberately not tunable
+// from the language — a boundary you can quieten is one you will quieten.
+export const BARE_CROSSINGS = 3;
+
 // Measured inter-onset intervals, in milliseconds (BIBLIOGRAPHY.md, gaits).
 const TEMPO = { walk: 301, trot: 352, pace: 352, canter: 148, gallop: 148, tolt: 301, back: 301 };
 
@@ -297,9 +303,11 @@ export class Horse {
     this.posture = null;
 
     this.exposures = new Map(); // habituation counts, keyed per stimulus shape
+    this.crossings = new Map(); // hands path -> unanswered crossings in a row
     this.trials = new Map();    // cue -> times called
     this.diagnostics = [];
     this.releaseBudget = 1000;  // ms; release is the reinforcer
+    this.deliberate = 0;        // ms spent standing or between strides, not late
     this.left = false;          // set when `leave` ends the program
     this.standing = false;      // the program has finished; the animal is still here
   }
@@ -349,8 +357,21 @@ export class Horse {
     }
   }
 
+  // A note is said when it happens, not collected and read out at the end. Most of
+  // what this animal has to say happens after the lead mare has released — inside a
+  // gait, or in a cue the page kept and called back into — and a report delivered at
+  // the end of the program would be delivered before any of it.
+  //
+  // Late is its own fault here. The language says so about release timing (§3) and
+  // the same applies to it: a diagnostic that arrives long after the thing it
+  // describes is not information about the thing.
+  //
+  // The array stays, for the CLI and for anything that wants the whole account.
   note(message, citation) {
-    this.diagnostics.push({ message, citation });
+    const said = { message, citation };
+    this.diagnostics.push(said);
+    if (this.host.onNote) this.host.onNote(said);
+    return said;
   }
 
   // ---------------------------------------------------------------------- cues
@@ -365,18 +386,22 @@ export class Horse {
     const fn = async (...args) => {
       const started = Date.now();
       const contextDepth = self.contexts.length;
+      // What was already spent standing before this cue began belongs to whoever
+      // was standing, not to this one. The difference is this cue's own waiting.
+      const waitedBefore = self.deliberate;
+      const late = () => self.deliberate - waitedBefore;
       self.trials.set(name, (self.trials.get(name) || 0) + 1);
       try {
         const out = await body(...args);
-        self.checkRelease(name, started);
+        self.checkRelease(name, started, late());
         return out;
       } catch (e) {
         if (e instanceof Released) {
-          self.checkRelease(name, started);
+          self.checkRelease(name, started, late());
           return e.value;
         }
         if (e instanceof Balk) {
-          self.checkRelease(name, started);
+          self.checkRelease(name, started, late());
           return REFUSED;
         }
         // GRAMMAR.md §11a. A `leave` ends the program, and past the point where the
@@ -394,7 +419,7 @@ export class Horse {
             `ends nothing`,
             "GRAMMAR.md §11a",
           );
-          self.checkRelease(name, started);
+          self.checkRelease(name, started, late());
           return REFUSED;
         }
         throw e;
@@ -409,8 +434,36 @@ export class Horse {
     return fn;
   }
 
-  checkRelease(name, started) {
-    const elapsed = Date.now() - started;
+  // Time the animal spent deliberately taking time — held between strides, or
+  // standing still because it was asked to. It is not lateness, and it does not
+  // count against the release.
+  //
+  // The contract is about *latency*: the gap between a signal and its answer, which
+  // is what the rein-tension work measures. A horse asked to stand for ten seconds
+  // and standing for ten seconds has answered immediately and correctly. Charging
+  // that to its budget warns an author for using the language's own primitives, and
+  // `stand` is the one construct whose whole content is spending time (§7).
+  //
+  // Not visible from inside the language, and not meant to be. It is bookkeeping
+  // about a diagnostic, not a fact about the animal.
+  //
+  // Limbs that strike together run together (§5), so two thunks in one group can be
+  // waiting at the same moment and both add their full span. Overlapping waits are
+  // therefore over-counted, and a cue that does it comes out looking early rather
+  // than late. Deliberately left that way: this exists to stop the contract crying
+  // wolf, and the failure it should have is a missed warning, not a false one.
+  async waited(ms, how) {
+    if (!ms) return how ? how() : undefined;
+    const began = Date.now();
+    try {
+      return how ? await how() : await sleep(ms);
+    } finally {
+      this.deliberate += Date.now() - began;
+    }
+  }
+
+  checkRelease(name, started, deliberate = 0) {
+    const elapsed = Date.now() - started - deliberate;
     if (elapsed > this.releaseBudget) {
       this.note(
         `${name} released after ${elapsed}ms; the release is the reinforcer, and a ` +
@@ -448,10 +501,22 @@ export class Horse {
 
   // Calls route through here so laterality and provenance apply. `hands` does not:
   // it is a flat, unconditioned boundary (GRAMMAR.md §11).
-  async call(callee, args, side) {
+  //
+  // `held` is the name the call was written under, which is not always the name of
+  // the cue: a cue can be passed, and then it is called under whatever the receiver
+  // called it. Training does not follow that name — the count is kept inside the
+  // cue, against the name it was taught under. A second word for a signal is the
+  // handler's convenience and not a second signal (GRAMMAR.md §3).
+  async call(callee, args, side, held) {
     if (typeof callee !== "function") {
-      throw new TypeError(`${String(callee)} is not a cue`);
+      throw new TypeError(`${held ? held : String(callee)} is not a cue`);
     }
+
+    // A function that is not a cue came out of `hands`, and binding it to a name
+    // did not bring it inside the effect system (GRAMMAR.md §11). It is called
+    // plainly: no side, no conditioning, nothing claimed about it.
+    if (!callee.isCue) return await callee(...args);
+
     const previous = this.side;
     if (side) this.side = side;
     try {
@@ -569,7 +634,7 @@ export class Horse {
           await this.stride(name, thunks, opts);
           if (this.left) return;
           if (this.host.stop && this.host.stop()) return;
-          if (name !== "tolt") await sleep(ms);
+          if (name !== "tolt") await this.waited(ms);
         }
       }
       return await this.stride(name, thunks, opts);
@@ -602,7 +667,7 @@ export class Horse {
     if (name === "back") {
       for (const t of Array.from(thunks).reverse()) {
         await t();
-        if (beat) await sleep(beat);
+        if (beat) await this.waited(beat);
       }
       return;
     }
@@ -615,7 +680,7 @@ export class Horse {
     for (const group of schedule(vector, thunks)) {
       if (group.length === 1) await group[0]();
       else await Promise.all(group.map((t) => t()));
-      if (beat) await sleep(beat);
+      if (beat) await this.waited(beat);
     }
 
     // The suspension: what is left of the stride after the last hoof leaves. A tolt
@@ -623,7 +688,7 @@ export class Horse {
     if (beat) {
       const last = Math.max(...vector.phases);
       const suspension = Math.max(0, 1 - last - vector.duty);
-      if (suspension > 0.01) await sleep(beat * suspension * 4);
+      if (suspension > 0.01) await this.waited(beat * suspension * 4);
     }
   }
 
@@ -642,7 +707,9 @@ export class Horse {
       if (otherwise) return otherwise();
       throw new Balk("nothing to hold still against");
     }
-    const held = await this.host.hold({ ms, jitter, onProgress: body });
+    // A stand is the one construct whose whole content is spending time, so none of
+    // it is lateness.
+    const held = await this.waited(ms, () => this.host.hold({ ms, jitter, onProgress: body }));
     if (!held && otherwise) return otherwise();
     if (!held) throw new Balk("the hold broke");
     return undefined;
@@ -788,7 +855,7 @@ export class Horse {
         const watcher = thunks[turn % thunks.length];
         if (watcher) await watcher();
         turn++;
-        await sleep(ms);
+        await this.waited(ms);
         if (this.left) return;
         if (this.host.stop && this.host.stop()) return;
       }
@@ -809,6 +876,45 @@ export class Horse {
   watch(target) { if (this.host.onWatch) this.host.onWatch(target); return target; }
 
   get hands() { return globalThis; }
+
+  // ------------------------------------------------------------ boundary weight
+  //
+  // GRAMMAR.md §11a. The release is the information. Through v0.4 the boundary
+  // caught the two faults a compiler can see and then went quiet, which made it a
+  // switch: it either refused at compile time or said nothing ever again. A contact
+  // is felt continuously, and this is the felt part.
+  //
+  // Every crossing that comes back **bare** is a signal that was given and not
+  // answered. One is ordinary — an element that is not on the page yet, a lookup
+  // that missed. A run of them at the same path is the handler asking the same
+  // question and getting nothing back, which is the shape §11a warns about.
+  //
+  // Counted per path and consecutively: an answer resets it. Pressure that is
+  // sometimes released is a different signal from pressure that is never released,
+  // and only the second one is worth saying out loud.
+  //
+  // Reported once, at the limit, and then silent — habituation, the same shape as
+  // `habituates after N` (§10), keyed the same way, to the structure of the thing
+  // rather than to the occasion. Saying it every time would be the flooding the
+  // language already warns about.
+  crossed(path, value) {
+    if (!bare(value)) {
+      this.crossings.delete(path);
+      return value;
+    }
+
+    const seen = (this.crossings.get(path) || 0) + 1;
+    this.crossings.set(path, seen);
+
+    if (seen === BARE_CROSSINGS) {
+      this.note(
+        `${path} came back bare ${seen} times in a row; pressure with no release ` +
+        `teaches nothing, and the boundary cannot tell you what it is holding`,
+        "GRAMMAR.md §11a",
+      );
+    }
+    return value;
+  }
 
   // ------------------------------------------------------------- value builders
   //

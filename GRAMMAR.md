@@ -268,6 +268,19 @@ higher-order use has no equine analogue either. What constrains it is already in
 language: a cue is bound to its animal and its training does not transfer, so passing one
 outside its band is meaningless rather than illegal.
 
+**A cue held under another name is the same cue.** `remember f as draw` then `(f)` calls
+it. The name a call is written under is the handler's word for the signal, not a second
+signal — two words for one cue are one cue, and the training stays with the animal rather
+than following the word. So the trial count is kept against the name it was taught under,
+and `(f)` and `(draw)` are the same repetition.
+
+Arity is checked through the name where the name can be followed home, and so is the
+refusal: a binding that plainly holds a number will not be holding a cue by the time it is
+called, and that is a compile error. A binding whose contents cannot be known — a
+parameter, a grazed item, a value carried by a signal, anything out of `hands` — is left
+to the runtime, which refuses to call what is not a cue. **That is where a dispatch table
+lives**, and until v0.5 it was inexpressible: every branch had to be written out.
+
 That forces a distinction, and it is load-bearing:
 
 | Form | Means |
@@ -284,6 +297,13 @@ diagnostic, because late release punishes the correct response rather than merel
 slow. Default budget 1s; the documented expected latency for a deliberate choice is ~4s.
 Under a declared individual, repeated late release degrades the binding toward learned
 helplessness, which retrying cannot repair.
+
+**The budget measures latency, not wall time.** Time spent standing, or between the
+strides of a gait, is the animal taking the time it was told to take — it answered
+immediately and correctly, and it is not late. A `stand` is the one construct whose entire
+content is spending time (§7), and charging it to the budget would warn an author for
+using the language as written. Lateness belongs to whoever is slow to let go, which is
+usually the far side of `hands`.
 
 **Training.** Under a declared individual, a newly defined cue is not yet reliable. First
 calls fail or partially succeed; reliability rises with repetition toward criterion, and
@@ -979,11 +999,48 @@ only at the end of the progression, as learned helplessness.
 Before v0.4 this boundary sat permanently at that end. §10 warns that `flood` produces
 learned helplessness, and `hands` was implementing it as a default.
 
-**Still unobserved:** repeated crossings that come back bare. A boundary with weight in it
-would count them per path and report at N, the way `habituates after N` already keys
-habituation to a structural hash of the stimulus. `hands` is `globalThis`, so this cannot
-be done with a proxy without breaking identity and slowing hot paths; the emitter knows
-every path syntactically and could wrap at the emit site instead. Not built. See §13.
+### The weight
+
+A boundary that refuses at compile time and then says nothing ever again is a switch. A
+contact is felt continuously, and this is the felt part.
+
+**Every crossing that comes back bare is counted, per path.** One is ordinary — an element
+that is not on the page yet, a lookup that missed. Three in a row at the same path is the
+handler asking the same question and getting nothing back, and the boundary says so.
+
+- **Consecutive, and an answer resets it.** Pressure that is sometimes released is a
+  different signal from pressure that is never released, and only the second is worth
+  saying out loud.
+- **Bare, not false.** §8a decides what nothing is: `0`, `""` and `[]` are things that are
+  there and count as answers. A boundary disagreeing with the rest of the language about
+  absence would report a working page.
+- **Keyed to the path, not the occasion** — the same shape as `habituates after N`, which
+  keys to the structure of a stimulus rather than to where it was met. An index is not
+  part of the shape: `images[0]` and `images[1]` are one question asked twice.
+- **Said once, then habituates.** Repeating it every time would be the flooding §10 warns
+  about.
+- **A read is a question; a write is not.** Nothing is asked for on the left of a
+  `becomes`, and naming a path on the way to its end asks nothing either. `hands.a.b` is
+  one question, not two.
+
+`hands` is `globalThis`, so none of this can be done with a proxy without breaking
+identity and slowing every hot path. The emitter knows each path syntactically and wraps
+at the emit site instead — which also means the weight is only on paths *rooted in
+`hands`*. A method on a locally bound object is not counted: §13 item 23 says members are
+unresolvable by nature, and guessing which of them came from the boundary would be exactly
+that guess.
+
+### Saying it out loud
+
+A diagnostic is said when it happens rather than collected and read out at the end. Most
+of what a program has to say happens after the lead mare has released — inside a gait, or
+in a cue the page kept and called back into — so a report delivered at the end of the
+program would be delivered before any of it.
+
+Late is its own fault here. The language says so about release timing (§3), and the same
+applies to what it says about itself: a diagnostic arriving long after the thing it
+describes is not information about the thing. Through v0.4 the runtime collected every one
+of these into an array that nothing ever read.
 
 ---
 
@@ -1413,7 +1470,50 @@ and had `hands` sitting there permanently.
 
 The half not built is the interesting half — counting crossings that come back bare, and
 reporting at N. That is what would give the boundary weight rather than an alarm, and it
-is a contact rather than a switch. §11a records why it waits.
+is a contact rather than a switch. Built in v0.5, §12n — where it turned out there had
+been nowhere to report *to*.
+
+## 12n. The boundary got its weight, and cues became first-class — v0.5
+
+Two items had been sitting in §13 since v0.4, both deferred for the same stated reason:
+each belonged to a release about something other than the boundary. They turned out to be
+one release, because the second one is how the first one gets *said*.
+
+| Gap | Problem | Resolution |
+|---|---|---|
+| **The boundary was a switch** | §13 item 25. It refused the two faults a compiler can see and then went quiet permanently. Nothing counted crossings that came back bare, so a page asking the same dead question every frame was indistinguishable from one being answered | Counted per path at the emit site, consecutively, reported once at three and then habituated. §11a |
+| **Cues were not first-class** | §13 item 26. `remember f as draw` then `(f)` reported "f is not a cue", so a dispatch table was inexpressible and every branch had to be written out — while a cue could still be handed *out* to JavaScript, which made the asymmetry strange | A name is followed home to what it holds. Known non-cues are still refused; the unknowable is left to the runtime. §3 |
+
+**And a third thing, found by building the first two.** The boundary reports at N, which
+needs somewhere to report *to* — and there wasn't one. `browser.js` surfaced compile
+errors, compile warnings and throws, while every runtime diagnostic went into an array
+nothing read. The one-second contract, the band-size lint and the empty-stall `leave` had
+been unobservable in the page since v0.1.
+
+Making them audible immediately produced a false positive on a live page, which is the
+part worth keeping:
+
+> `mirror.html` reported `reflect released after 1406ms`. The cue is the lead mare; its
+> time went into a `trot` and a `stand`, both of which are the animal deliberately taking
+> time. The budget had been measuring wall clock.
+
+The one-second contract is about **latency** — the gap between a signal and its answer,
+which is what the rein-tension work measures. A horse asked to stand for ten seconds and
+standing for ten seconds has answered immediately. Charging that to the budget warns an
+author for using the language's own primitives, and `stand` is the construct whose entire
+content is spending time. Now discounted, at every depth: gait intervals, stride beats,
+suspension, the sentinel's rotation, and the hold.
+
+This is the second time a diagnostic has been wrong in a way nobody could see. §12m found
+`hands` failing silently; this found the language's own reports doing it. **A warning that
+is never delivered and a warning that is wrong are the same defect**, and the only reason
+this one surfaced is that something finally listened.
+
+The sample named "a late release is punishing" had been demonstrating the false positive
+for four releases — it built its lateness entirely out of `walk every 300ms`. It now waits
+on the far side of the boundary, which is where lateness actually comes from, and it is
+written with a cue handed to `new hands.Promise` — a program that could not have been
+written before item 26 closed.
 
 ## 13. Still open
 
@@ -1427,25 +1527,68 @@ is a contact rather than a switch. §11a records why it waits.
 23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
     member name survives to runtime. That is the price of `hands` being a flat boundary
     onto JavaScript, and it is probably the right price.
-18. **The voice channels went unused.** Across three ported programs `whinny` and `nicker`
+18. **The voice channels went unused.** Across four ported programs `whinny` and `nicker`
     never appeared, and `snort`/`squeal` only inside a `context` that assigned their
     meaning locally. Evidence that voice is a smaller part of the language than the design
-    assumed. Watch it; don't act yet.
+    assumed — or that nothing has yet been far enough away to need calling to. A whinny is
+    the contact call between separated animals, and every band so far has shared a scope.
+    See item 28. Watch it; don't act yet.
+
+    v0.5 does not move this either way, and is worth recording as a near miss: the
+    boundary now *speaks* when a crossing goes unanswered, and it does so as a diagnostic
+    rather than as a voice channel. That was not a considered choice — a note is the
+    compiler's register and a whinny is the animal's, and a boundary calling out to
+    nobody is arguably the better reading of both. Left alone because acting on it would
+    be acting on item 18 without the evidence item 18 is waiting for.
 20. **Welfare's observable surface.** Welfare gates capability, but nothing says how a
-    program reads its own welfare, or whether it may. Deferred to v0.3, where welfare
-    lands.
+    program reads its own welfare, or whether it may. Deferred to v0.3 — which then
+    landed truth instead, and welfare has never been built: the word appears nowhere in
+    the lexer, parser or resolver. The deferral is the stale part, not the item. It wants
+    a release of its own, or a decision that a program does not get to read its own
+    welfare, which is defensible and would close this.
 21. **`graze` over `forage`.** `deck.graze` (draw one) and `graze deck as x` (traverse
     all) use the same word for a single draw and a full traversal. Defensible — both are
     grazing — but a reader will trip. Watch.
-25. **The boundary has no weight yet.** §11a catches the two failures a compiler can see
-    and nothing counts crossings that come back bare. A contact is felt continuously and
-    a switch is not, and this is still a switch. Wants per-path counting at the emit site,
-    reusing the structural hash `habituates after N` already keys on. See §11a.
-26. **Cues are not first-class within the language.** `remember f as answer` then `(f)`
-    reports "f is not a cue", so a dispatch table is inexpressible and every branch has to
-    be written out. A cue can be handed *out* to JavaScript, which makes the asymmetry
-    strange. Held back from v0.4 deliberately: it is a resolver and emitter change, and it
-    belongs to a release about dispatch rather than one about the boundary.
+25. ~~**The boundary has no weight yet.**~~ Closed in v0.5 — counted per path at the emit
+    site, said once at three, then habituated. §11a.
+26. ~~**Cues are not first-class within the language.**~~ Closed in v0.5 — a name is
+    followed home to the cue it holds. §3.
+29. **A value cannot be waited on.** A cue can now be handed to `new hands.Promise`, so
+    the language can *produce* a promise — and it has no way to wait on one it is holding.
+    Awaiting happens only at call sites, so `remember p as ...` then wanting its answer
+    means calling a member on it (`(p.then)`), which is the workaround the late-release
+    sample is written around. Found by writing that sample. Recorded rather than fixed:
+    the equine reading of "wait for something already asked for" is not obvious, and
+    inventing a keyword before the reading exists is what principle zero forbids.
+28. **Work that happens somewhere else.** Designed, not built, and parked because the
+    problem that prompted it turned out to be elsewhere. Recorded because the grounding
+    is unusually clean and would be a shame to re-derive.
+
+    A `bachelor` group already means *sees every band, and no band sees it* (§2.4), and
+    that one-way visibility is exactly an isolate: data flows in, nothing reaches back
+    except by message. So off-thread work belongs there and nowhere else.
+
+    - `bachelor rendering out of sight` — `out of sight` is not decoration. It is the
+      condition under which a horse uses its long-range call, and it is what a worker
+      is: no shared scope, nothing visible from either side.
+    - **A cue out of sight cannot `release`.** There is nobody there to hand anything
+      to. It `whinny`s, and the band `hears` it later — which is what a whinny *is*, the
+      contact call between separated animals. This is very likely the answer to item 18:
+      voice went unused across four ported programs because nothing in the language had
+      ever been far enough away to need it.
+    - **Work divides by field, not by queue.** Horses have no dispatcher and no
+      work-stealing; what a herd divides is *attention*. The many-eyes effect is each
+      animal covering its own direction, and coverage being the union. So the runtime
+      splits a list evenly across the group, one share per animal, once.
+    - `hands` inside such a group is a **different world** — a worker's `globalThis` has
+      no document. Semantically right for the periphery, and a large change: `hands`
+      stops being one boundary and becomes one per locale.
+    - The worker source must be emitted from the same inline block and wrapped in a Blob
+      URL. A separate file would break the reason the language is delivered as source.
+
+    Cost: a second compilation target, an isolate boundary, and a new meaning for
+    `hands`. Do not build it without a measurement showing main-thread CPU is the
+    bottleneck.
 27. **No object literals, and no string escapes.** `f({pan: -1})` is unwritable and so is
     inline JSON, since `"` cannot be escaped. The workaround is two plain lines —
     `hands.JSON.parse "{}"` then a member assignment — and principle zero says an options
