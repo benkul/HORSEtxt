@@ -20,18 +20,10 @@ band gallery
 
 ## Status
 
-**v0.5.1 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
+**v0.5.2 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
 emitter, runtime, browser loader, host, CLI, and a playground.
 
-Since v0.1: the body and its limits (v0.2), what a horse counts as true (v0.3), the
-`hands` boundary made loud (v0.4), and the boundary given weight — plus cues that can be
-held under another name and called back (v0.5). `GRAMMAR.md` §12 records what each
-release found and what it cost; §13 is what is still open.
-
-Every release so far was found the same way: by porting a real page onto the previous
-one. §12o is the most recent, and the shortest summary of the method — the port needed
-one thing, the language could not do it, and the reason was a boundary nobody had
-looked at.
+`GRAMMAR.md` is the specification; §12 there is what the language does not do.
 
 ```
 npm test      # lexer, parser, resolver, emitter, loader
@@ -119,14 +111,11 @@ Beyond that, the parts of the design still ahead of the implementation:
   wait for the individual to have a history to be sized by.
 - **Waiting on a value.** A cue can be handed to `new hands.Promise`, so the language can
   produce a promise and has no way to wait on one it is holding — awaiting happens only
-  at call sites. §13 item 29 records why that is not simply a missing keyword.
-- **Work somewhere else.** A `bachelor` group is already an isolate by its own definition,
-  which is where off-thread work would belong. Designed in §13 item 28 and deliberately
-  not built without a measurement.
+  at call sites. `GRAMMAR.md` §12.
+- **Work somewhere else.** A `bachelor` group is an isolate by its own definition, which
+  is where off-thread work belongs. Designed and unbuilt; `GRAMMAR.md` §13.
 
-The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
-§12–§12o, one section per release, and everything still open in §13. Worked programs are
-in `examples/`.
+The grammar is in `GRAMMAR.md`, and worked programs are in `examples/`.
 
 ## What it is
 
@@ -180,9 +169,8 @@ Nothing is arbitrary. If a rule cannot be traced to a citation, it is a bug.
 ## Where the reasoning lives
 
 - `BIBLIOGRAPHY.md` — the manual. Every construct, and the paper it comes from.
-- `GRAMMAR.md` §12–§12o — every gap the implementation found, in the order it found them,
-  with what changed and why. Read as a record of a design meeting reality. §13 is what is
-  still open, including the things deliberately left alone.
+- `GRAMMAR.md` — the specification. §12 is what the language does not do, and why each
+  limit is chosen or merely true.
 - `STDLIB.md` — what the small standard library holds, and what it deliberately omits.
 
 ## Licence

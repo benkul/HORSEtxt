@@ -21,10 +21,8 @@ band listening
     # there is nothing to handle and nothing to report.
     #
     # `balk`, not `leave`. both are terminal successes and they end different
-    # things: balk declines this cue, leave ends the program. this said `leave`
-    # from v0.1 until v0.5.1, so the first silent channel ended the room --
-    # no channels, no pulse, and no error either, because leaving is not a
-    # failure. the check passed the whole time: it resolves, it does not listen.
+    # things: balk declines this cue, leave ends the program. a silent channel
+    # declines; it does not end the room.
     #
     # `chance`, not `weather`: each channel decides independently. weather is a
     # shared condition, so gating on it would silence all three together or none.

@@ -1,6 +1,6 @@
 # HORSEtxt — Standard Library
 
-Closes gap 17 in `GRAMMAR.md` §13. Bare section references below are to `GRAMMAR.md`.
+Bare section references below are to `GRAMMAR.md`.
 
 **It is small on purpose.** `hands` is the escape hatch for everything that is not
 horse, and per principle zero — where there is no honest equine analogue, HORSEtxt stays
@@ -14,20 +14,17 @@ program needing something is an argument for `hands`.
 
 ## Collections
 
-A list (`[ … ]`) responds to:
+A list (`[ … ]`) is a plain sequence and **has no members of its own**. Indexing is
+`list[n]`, zero-based; traversal is `graze` (§6.1); everything else reaches JavaScript
+through the flat boundary, so `xs.length` and `xs.slice 1` are how you ask.
 
-| Member | Yields | Notes |
-|---|---|---|
-| `count` | number of items | |
-| `empty` | truth | `when deck empty` reads as prose because `empty` is a member, not a keyword |
-| `first` | first item | balks on an empty list |
-| `last` | last item | balks on an empty list |
+That is the difference between a list and the two structures below it. A `forage` and a
+`pile` are the language's own, so they answer in its vocabulary. A list is a value, and
+§11 makes the boundary onto values flat on purpose.
 
-Indexing is `list[n]`, zero-based.
-
-There is no `map`, `filter`, or `reduce`. Traversal is `graze` (§6.1) and filtering is a
-`blank` in the graze body, because horses are selective grazers. Anything beyond that goes
-through `hands`.
+There is no `map`, `filter`, or `reduce`. **Filtering a graze is a `when` around the
+work** — not a `blank`, which leaves the cue rather than the iteration (§10). Selective
+grazing is the animal moving on, rather than issuing a statement about moving on.
 
 ## Forage
 
@@ -75,8 +72,16 @@ the arithmetic rules in §9, and collapsing to one scalar is a type error.
 
 ## Numbers, text, truth
 
-Plain. Arithmetic is arithmetic; `+ - * / > < >= <= = !=` and nothing more. Text has no
-members — formatting, splitting, casing, and matching all go through `hands`.
+Plain. Arithmetic is arithmetic; `+ - * / %`, compared with `> < >= <= = !=`, and nothing
+more. `%` binds with `*` and `/`. Text has no members — formatting, splitting, casing,
+and matching all go through `hands`.
+
+**A method used as a value is reported.** `count.at - 1`, `count.at > 10` and
+`"n: " + count.at` all take hold of the method and use it instead of asking it for
+anything — the §11a fault in value position. The first is nothing, the second is false
+however many there are, and the third puts JavaScript source into whatever the page
+displays. All three say so at runtime. `=` and `!=` are the exception: two names may
+hold the same cue, and asking whether they do is a real question.
 
 `bare` is nothing being there. **It is not zero** — zero is a quantity, and `when 0` is
 true. `when` is false for exactly `false` and for bare (`null`, `undefined`, `NaN`).

@@ -1,6 +1,6 @@
 {
   "name": "horsetxt",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A general-purpose language for horses. Compiles to JavaScript.",
   "type": "module",
   "private": true,

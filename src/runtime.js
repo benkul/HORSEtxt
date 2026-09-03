@@ -766,7 +766,7 @@ export class Horse {
     else throw new TypeError(`${String(source)} cannot be grazed`);
 
     // The point of balance is at the shoulder. Pressure behind it drives the animal
-    // forward; pressure in front of it drives it back (GRAMMAR.md §12g).
+    // forward; pressure in front of it drives it back (GRAMMAR.md §9a).
     if (driven === "back") items = items.slice().reverse();
 
     for (const item of items) {
@@ -808,7 +808,7 @@ export class Horse {
   // which a `spook` can handle. The right eye feeds the left hemisphere and
   // categorises instead.
 
-  // GRAMMAR.md §12g. The side is not decoration on one operation — it selects which
+  // GRAMMAR.md §9a. The side is not decoration on one operation — it selects which
   // question was asked, because the hemispheres do different work.
   //
   // `held` is what the enclosing cue was handed. A horse cannot see its own muzzle,
@@ -978,6 +978,50 @@ export class Horse {
   // correlated — read three times in an instant, weather gives one answer and
   // `chance` gives three.
   chance() { return Math.random(); }
+
+  // GRAMMAR.md §11a. A method used as a value.
+  //
+  // `now.getTime - 1000` subtracts from the *function*; `hands.API.count > 10` is
+  // false however many there are; `"count: " + hands.API.count` puts JavaScript
+  // source into a label. All three are the pressure-with-no-release fault (§11a) in
+  // value position: something was taken hold of across the boundary and then used
+  // instead of being asked for anything.
+  //
+  // §11a refuses this as a statement and cannot see it in an expression, because
+  // there the path does go somewhere. None of the three is an error, and a `when` on
+  // the result is silently false.
+  //
+  // `=` and `!=` are deliberately not routed here. Two names may hold the same cue,
+  // and asking whether they do is a real question rather than a mistake.
+  //
+  // A note rather than a throw. §8a already decided that a failed sum is **bare**
+  // and that bare is the honest answer to a question which had none, so the value
+  // is not wrong. What was missing is anyone saying why it had none.
+  op(a, op, b, leftPath = null, rightPath = null) {
+    const fn = typeof a === "function";
+    if (fn || typeof b === "function") {
+      const path = (fn ? leftPath : rightPath) ||
+                   (fn ? a : b).cueName || "a method";
+      this.note(
+        `${path} was used as a value rather than asked for one; ` +
+        `write (${path}) to ask it`,
+        "GRAMMAR.md §11a",
+      );
+    }
+    switch (op) {
+      case "+": return a + b;
+      case "-": return a - b;
+      case "*": return a * b;
+      case "/": return a / b;
+      case "%": return a % b;
+      case ">": return a > b;
+      case "<": return a < b;
+      case ">=": return a >= b;
+      case "<=": return a <= b;
+      default: throw new TypeError(`no operator ${op}`);
+    }
+  }
+
   recognise(value) { return recognise(value); }
   graded(n) { return graded(n); }
   affect(a, v) { return affect(a, v); }

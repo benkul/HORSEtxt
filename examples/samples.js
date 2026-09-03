@@ -177,8 +177,8 @@ band looking
   "a signal that carried something": `band gates
 
     # a signal has no meaning of its own. the nearest context decides what it
-    # means -- and since v0.4 the handler can name what arrived, which is what
-    # makes a context worth having.
+    # means -- and the handler can name what arrived, which is what makes a
+    # context worth having.
 
     cue creaked which
         snort which
@@ -196,10 +196,8 @@ band looking
 
   "a cue held under another name": `band naming
 
-    # a cue in expression position is the cue itself. the grammar has said so
-    # since v0.1, and until v0.5 it was only half true: a cue could be handed out
-    # to javascript and could not be called back inside the language. so every
-    # branch had to be written out, and a table of them was inexpressible.
+    # a cue in expression position is the cue itself, so a cue held under another
+    # name calls fine and a dispatch table is expressible.
     #
     # the name a call is written under is the handler's word for the signal, not a
     # second signal. training does not follow the word: it stays with the cue, and

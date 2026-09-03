@@ -786,6 +786,31 @@ class Resolver {
         this.expr(e.patches, scope);
         return;
       case "Binary":
+        this.expr(e.left, scope);
+        this.expr(e.right, scope);
+        // The provable half. A cue in arithmetic is the same fault
+        // as a method in arithmetic, and here the resolver knows: `draw - 1`
+        // subtracts from the cue rather than from what it answers.
+        //
+        // Identity is left alone -- `Compare` is not this case, because asking
+        // whether two names hold the same cue is a real question.
+        if (e.op === "-" || e.op === "*" || e.op === "/") {
+          for (const side of [e.left, e.right]) {
+            if (!side || side.type !== "Name") continue;
+            const info = scope.lookup(side.name);
+            if (!info) continue;
+            const held = this.heldCue(info, scope);
+            if (held && held.cue) {
+              this.fail(
+                side,
+                `${JSON.stringify(side.name)} is a cue, and arithmetic on a cue ` +
+                `has no answer in it; write (${side.name}) to ask it for one`,
+                "GRAMMAR.md §11a",
+              );
+            }
+          }
+        }
+        return;
       case "Compare":
       case "Logical":
         this.expr(e.left, scope);

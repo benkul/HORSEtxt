@@ -477,7 +477,7 @@ class Emitter {
   e_Recognise(n) { return `H.recognise(${this.expr(n.value)})`; }
 
   // The enclosing cue's parameters travel with the call: they are what this animal
-  // is holding, and a horse cannot see its own muzzle (GRAMMAR.md §12g).
+  // is holding, and a horse cannot see its own muzzle (GRAMMAR.md §9a).
   e_Flehmen(n) {
     const held = this.params.length ? `[${this.params.map(js).join(", ")}]` : "[]";
     return `(await H.flehmen(${this.expr(n.value)}, ${side(n.lateral)}, ${held}))`;
@@ -495,12 +495,25 @@ class Emitter {
   e_Not(n) { return `(!H.truth(${this.expr(n.value)}))`; }
   e_Negate(n) { return `(-${this.expr(n.value)})`; }
 
-  e_Binary(n) {
-    return `(${this.expr(n.left)} ${n.op} ${this.expr(n.right)})`;
+  e_Binary(n) { return this.operate(n); }
+
+  // Every operator that treats its operands as values goes through the runtime, so
+  // a method used as one is said out loud (§11a). The paths travel with it, so the
+  // note can name the side at fault; a literal cannot be a method and carries none.
+  operate(n) {
+    const left = this.expr(n.left), right = this.expr(n.right);
+    const lp = named(n.left), rp = named(n.right);
+    const where = lp || rp ? `, ${js0(lp)}, ${js0(rp)}` : "";
+    return `H.op(${left}, ${JSON.stringify(n.op)}, ${right}${where})`;
   }
+  // Identity stays plain. Two names may hold the same cue and asking whether they
+  // do is a real question, so `=` and `!=` are the one place a method is a value.
   e_Compare(n) {
-    const op = n.op === "=" ? "===" : n.op === "!=" ? "!==" : n.op;
-    return `(${this.expr(n.left)} ${op} ${this.expr(n.right)})`;
+    if (n.op === "=" || n.op === "!=") {
+      const op = n.op === "=" ? "===" : "!==";
+      return `(${this.expr(n.left)} ${op} ${this.expr(n.right)})`;
+    }
+    return this.operate(n);
   }
   e_Logical(n) {
     const op = n.op === "and" ? "&&" : "||";
@@ -554,13 +567,24 @@ function rootIsHands(node) {
 
 // A crossing is a path *rooted in `hands`* — syntactically, which is the only way
 // the emitter can know. A method call on a locally bound object is not one of these
-// and is not counted: §13 item 23 already says members are unresolvable by nature,
+// and is not counted: §12 already says members are unresolvable by nature,
 // and guessing which of them came from the boundary would be exactly that guess.
 function isCrossing(node) {
   if (node.type === "Member" || node.type === "Index") return rootIsHands(node);
   if (node.type === "Call") return rootIsHands(node.callee);
   return false;
 }
+
+// What to call an operand in a diagnostic, or null when it cannot be a method.
+function named(node) {
+  if (!node) return null;
+  if (node.type === "Member" || node.type === "Index" || node.type === "Name") {
+    return pathOf(node);
+  }
+  return null;
+}
+
+function js0(v) { return v === null ? "null" : JSON.stringify(v); }
 
 // The stimulus is the path, not the occasion — so two calls to the same path share
 // one count, the way habituation is keyed to the shape of a thing and not to where

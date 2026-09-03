@@ -322,6 +322,159 @@ T("a note reaches the host as it happens", async () => {
   ok(said.some((m) => /came back bare/.test(m)), JSON.stringify(said));
 });
 
+// --------------------------------------------------------- arithmetic on a method
+//
+// GRAMMAR.md §11a, §12f. `now.getTime - 1000` subtracts from the *function*: the
+// pressure-with-no-release fault in value position. §11a refuses it as a statement
+// and cannot see it here, because in an expression the path does go somewhere.
+//
+// §12f recorded this in v0.2 — "the rule is right; the failure is quiet" — and it
+// stayed quiet for four releases. A `when` on the result is then silently false.
+//
+// Noted rather than thrown: a failed sum is bare, and §8a already decided that is
+// the honest answer to a question with none. What was missing is why it had none.
+
+T("arithmetic on a method is reported", async () => {
+  globalThis.OUT = { at: () => 5 };
+  const r = await runSource(
+    band(["lead mare go", "    remember n as hands.OUT.at - 1", "    release n"]),
+    "t.horse", { stop: () => true },
+  );
+  ok(!r.errors.length, JSON.stringify(r.errors));
+  ok(notesOf(r).some((m) => /used as a value rather than asked/.test(m)), JSON.stringify(notesOf(r)));
+});
+
+T("and it names the path at fault", async () => {
+  globalThis.OUT = { at: () => 5 };
+  const r = await runSource(
+    band(["lead mare go", "    remember n as hands.OUT.at - 1", "    release n"]),
+    "t.horse", { stop: () => true },
+  );
+  ok(notesOf(r).some((m) => /hands\.OUT\.at was used/.test(m)), JSON.stringify(notesOf(r)));
+  ok(notesOf(r).some((m) => /write \(hands\.OUT\.at\)/.test(m)), "it says how to fix it");
+});
+
+T("either side is caught", async () => {
+  globalThis.OUT = { at: () => 5 };
+  const r = await runSource(
+    band(["lead mare go", "    remember n as 10 * hands.OUT.at", "    release n"]),
+    "t.horse", { stop: () => true },
+  );
+  ok(notesOf(r).some((m) => /hands\.OUT\.at was used/.test(m)), JSON.stringify(notesOf(r)));
+});
+
+T("the called form is silent", async () => {
+  globalThis.OUT = { at: () => 5 };
+  const r = await runSource(
+    band(["lead mare go", "    remember n as (hands.OUT.at) - 1", "    release n"]),
+    "t.horse", { stop: () => true },
+  );
+  eq(notesOf(r), [], "asked, and answered");
+});
+
+// A sum that fails for an ordinary reason is not this. §8a blesses bare as the
+// honest answer to a question that had none, and most of those are not mistakes.
+T("an ordinary failed sum says nothing", async () => {
+  globalThis.OUT = { at: () => 5, missing: undefined };
+  const r = await runSource(
+    band(["lead mare go", "    remember n as hands.OUT.missing - 1", "    release n"]),
+    "t.horse", { stop: () => true },
+  );
+  ok(!notesOf(r).some((m) => /used as a value rather than asked/.test(m)),
+    JSON.stringify(notesOf(r)));
+});
+
+// A comparison against a method is the worst of the three, because it does not
+// even come back as nothing: it comes back false, and the wrong branch runs.
+T("a comparison against a method is reported", async () => {
+  globalThis.OUT = { at: () => 42 };
+  const taken = [];
+  globalThis.TOOK = (s) => taken.push(s);
+  const r = await runSource(
+    band([
+      "lead mare go",
+      "    when hands.OUT.at > 10",
+      '        hands.TOOK "over"',
+      "    otherwise",
+      '        hands.TOOK "under"',
+      "    release",
+    ]),
+    "t.horse", { stop: () => true },
+  );
+  ok(notesOf(r).some((m) => /hands\.OUT\.at was used/.test(m)), JSON.stringify(notesOf(r)));
+  eq(taken, ["under"], "the value is unchanged; only the silence is fixed");
+});
+
+// And concatenation puts JavaScript source into whatever the page shows.
+T("joining a method to text is reported", async () => {
+  globalThis.OUT = { at: () => 42 };
+  const r = await runSource(
+    band(['lead mare go', '    remember s as "n: " + hands.OUT.at', "    release s"]),
+    "t.horse", { stop: () => true },
+  );
+  ok(notesOf(r).some((m) => /hands\.OUT\.at was used/.test(m)), JSON.stringify(notesOf(r)));
+});
+
+T("ordinary concatenation says nothing", async () => {
+  const r = await runSource(
+    band(['lead mare go', '    remember s as "n: " + 1', "    release s"]),
+    "t.horse", { stop: () => true },
+  );
+  eq(notesOf(r), []);
+  ok(!r.threw, r.threw && String(r.threw));
+});
+
+// Every operator still answers what it always answered. Routing them through the
+// runtime is a place to look from, not a change of arithmetic.
+T("the operators are unchanged", async () => {
+  globalThis.OUT = [];
+  const r = await runSource(
+    band([
+      "lead mare go",
+      "    hands.OUT.push (7 - 2)",
+      "    hands.OUT.push (7 * 2)",
+      "    hands.OUT.push (7 / 2)",
+      '    hands.OUT.push ("a" + "b")',
+      "    hands.OUT.push (7 > 2)",
+      "    hands.OUT.push (7 < 2)",
+      "    hands.OUT.push (7 >= 7)",
+      "    hands.OUT.push (7 <= 2)",
+      "    release",
+    ]),
+    "t.horse", { stop: () => true },
+  );
+  ok(!r.errors.length, JSON.stringify(r.errors));
+  eq(globalThis.OUT, [5, 14, 3.5, "ab", true, false, true, false]);
+});
+
+// The provable half. A cue in arithmetic is the same fault and the resolver knows,
+// so it is refused at compile time rather than noted at runtime.
+T("a cue in arithmetic is refused outright", () => {
+  const errs = errorsOf([
+    "cue draw", "    release 1",
+    "lead mare go", "    remember x as draw - 1", "    release x",
+  ]);
+  ok(errs.some((m) => /arithmetic on a cue/.test(m)), JSON.stringify(errs));
+});
+
+T("and so is a cue held under another name", () => {
+  const errs = errorsOf([
+    "cue draw", "    release 1",
+    "lead mare go", "    remember f as draw", "    remember x as f * 2", "    release x",
+  ]);
+  ok(errs.some((m) => /arithmetic on a cue/.test(m)), JSON.stringify(errs));
+});
+
+// Identity is a real question. Two names may hold the same cue, and asking is not
+// arithmetic.
+T("comparing two cues is still allowed", () => {
+  eq(errorsOf([
+    "cue draw", "    release 1",
+    "lead mare go", "    remember f as draw",
+    "    when f = draw", "        release 1", "    release 0",
+  ]), []);
+});
+
 // ------------------------------------------------------------------------- report
 
 for (const [name, fn] of queue) {

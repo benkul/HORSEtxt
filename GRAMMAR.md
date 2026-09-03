@@ -1,8 +1,5 @@
 # HORSEtxt — Grammar
 
-Version 0.1, draft 7. Each draft closed gaps the previous one could not see; §12a–§12e
-record what was found and how, in the order it happened.
-
 Register: **prose for keywords, terse for expressions.** Indentation-delimited blocks.
 Lowercase. Minimal punctuation. ASCII only — see §1.1.
 
@@ -221,8 +218,7 @@ herd site
 **A `bachelor` group stands on the periphery.** All-male units occupy the edge of a herd
 while large mixed-sex units hold the centre, and inter-unit coordination reaches the edge.
 So a bachelor group sees every band in its herd without declaring anything, and no band
-sees it — which is what a test group wants, and is the first mechanism behind a claim
-`bachelor` has carried since draft 1.
+sees it — which is what a test group wants.
 
 **This is also the remedy for the band-size lint.** Before, the lint said split and the
 language gave no way to split without duplicating, because bands could not see each other
@@ -279,7 +275,7 @@ refusal: a binding that plainly holds a number will not be holding a cue by the 
 called, and that is a compile error. A binding whose contents cannot be known — a
 parameter, a grazed item, a value carried by a signal, anything out of `hands` — is left
 to the runtime, which refuses to call what is not a cue. **That is where a dispatch table
-lives**, and until v0.5 it was inexpressible: every branch had to be written out.
+lives.**
 
 That forces a distinction, and it is load-bearing:
 
@@ -374,10 +370,8 @@ space, and the schedule is derived from the vector rather than written out per g
 
 **Statements fill the stride in the order the beats happen**, not by limb. A two-beat
 gait therefore runs two statements per beat, a canter runs one, then a pair, then one, and
-written order is always preserved. Assigning statement 0 to the left hind was the obvious
-reading and it was wrong: statements have an order, not a limb identity, so two statements
-in a trot landed on a hind and a fore of the same side — which strike at different times —
-and the canonical two-at-once gait ran them sequentially.
+written order is always preserved. Statements have an order, not a limb identity: a
+statement is not assigned to a particular hoof, it takes the next beat.
 
 A consequence worth stating rather than leaving as a surprise: **a `trot` and a `pace`
 schedule identically.** Both are two beats of two. Which limbs pair — diagonal against
@@ -609,10 +603,9 @@ and individual differences that are not noise.
 
 #### Staging
 
-v0.1 returns independent fresh values behind these axis names. v0.2 adds the correlations,
-the autocorrelation, and the individual conditioning. **The shape is fixed now** so that is
-a runtime change and not a syntax change — §7.6 means there is no migration culture here,
-so a later rename would break every program with no ecosystem able to fix it.
+The axis names are fixed, so refining what lies behind them stays a runtime change rather
+than a syntax change. §7.6 means there is no migration culture here: a rename would break
+every program, with no ecosystem able to fix it.
 
 ### 6.5 `chance` — a fresh draw
 
@@ -681,17 +674,14 @@ emission     = signal , [ expression ] , newline ;
 ```
 
 **A context contains handlers and nothing else** — at least one. That is what a context
-is: a set of interpretations. (In draft 2 `handler` was defined but unreachable, since a
-context's body was a general `block` and no statement form admitted `hears`.)
+is: a set of interpretations.
 
 **`context` is legal both as a declaration and as a statement**, so a handler can scope to
 a region inside a cue. Contexts are user-definable; the built-in set is not privileged.
 Resolution is lexical then dynamic: nearest enclosing context wins.
 
-**`hears snort as what` names what the signal carried.** The emitter has passed the
-carried value since v0.1 and the language had no way to name it, so a handler could see
-that a signal had arrived and not what it brought — which made contexts a good deal less
-usable than §8 claimed. Closed in v0.4.
+**`hears snort as what` names what the signal carried**, so a handler knows not only that
+a signal arrived but what it brought.
 
 The binding belongs to **that handler**, not the context: two handlers for two signals are
 two interpretations, and a name from one has no meaning in the other. `as` is optional; a
@@ -739,8 +729,8 @@ that calls both of them false cannot tell you which one it is looking at.
 **Mejdell 2016 is why.** Horses were taught three symbols — blanket on, blanket off, and
 no change — and the third was a **blank glyph the animal had to press**. The experimenters
 would not read "no change" off a horse standing still, because a horse standing still
-might be confused, unmotivated or unable. Silence is not an answer. `blank` has encoded
-this since v0.1; §8a is the rest of the language catching up with it.
+might be confused, unmotivated or unable. Silence is not an answer, which is what `blank`
+encodes and what the rest of §8a follows from.
 
 `NaN` is bare for the same reason the other two are: it is what a question comes back as
 when it had no answer, not an answer of its own.
@@ -748,8 +738,7 @@ when it had no answer, not an answer of its own.
 ### Patch use
 
 `or` joins answers and gives an answer back. That is correct for `or` and useless as a
-default — `given or 7` is `true`, never `7`. They were conflated until draft 7, and every
-default in a real program came back as a boolean.
+default — `given or 7` is `true`, never `7`.
 
 A default is not a logical join. It is **patch use**: a horse works a patch down and moves
 to the next, and bare ground does not feed it. So the first patch with anything in it is
@@ -784,6 +773,53 @@ reduce to one pitch.
 
 ---
 
+## 9a. Perception
+
+**Perception applies to what is perceived, and to nothing else.** A value that crossed in
+from outside — through `hands`, carried by a signal, handed over by a `graze` — is a thing
+in the world. A number you computed is not perceived, it is held, and nothing about eyes
+applies to it.
+
+Values do not have positions in a 350° field, and building a spatial model so that "blind
+spot" had something to mean would be the invention §0 forbids. What follows is the part of
+the body that maps.
+
+**Laterality decides what a look yields.** The left eye feeds the right hemisphere, which
+handles novelty, threat, predator detection and escape; the right eye feeds the left,
+which does analytical categorisation. The side is not decoration on one operation — it
+selects which question was asked:
+
+- `flehmen x from the left` — is this new, is this a threat. Raises `novel` for anything
+  this animal has not met, and answers with a truth.
+- `flehmen x from the right` — what kind of thing is this. Answers with a category.
+
+Unstated, the ambient side decides. It comes from the individual's bias and shifts with
+the enclosing block, because sensory laterality shifts faster and more situationally than
+motor laterality.
+
+**Flehmen requires attention.** An animal with both ears flattened is agonistic and is not
+attending, and a horse's attention is read from eyes *and* ears together. A chord that
+closes agonistic cannot route anything for finer analysis: `flehmen` inside it balks.
+
+**A cue cannot flehmen its own parameters.** A horse cannot see its own muzzle: what it is
+holding is exactly what it cannot look at. What was handed to you is at your muzzle — you
+may use it, pass it, read a member of it, and you may not route it for analysis. To
+inspect it, let it go and meet it again.
+
+**Novelty is keyed to the shape of a thing**, not to its identity. A thing you can hold is
+identified by what it is; a thing with parts by its parts — which is why a familiar object
+rotated reads as novel again.
+
+**The point of balance gives direction.** Pressure behind the shoulder drives an animal
+forward, in front of it drives it back. That is a `graze`'s direction: `from behind`
+traverses forward, `from the front` in reverse (§6.1).
+
+Flight zone and pressure zone are the other two thirds of Grandin's approach model and are
+not in the language. A flight zone is a property of the animal, sized by its handling
+history, rather than a property of its data.
+
+---
+
 ## 10. Failure, refusal, scope, laterality
 
 ```
@@ -808,8 +844,8 @@ cue. `leave` ends the program having done nothing. `blank` answers "no change" a
 the cue — Mejdell's third symbol was a blank glyph the horse had to *press*, so the
 no-change answer is given rather than inferred from silence.
 
-**`blank` is not a skip.** Earlier drafts said it filtered a `graze`; it does not, because
-it leaves the cue rather than the iteration. Filtering a graze is a `when` around the work,
+**`blank` is not a skip.** It does not filter a `graze`, because it leaves the cue rather
+than the iteration. Filtering a graze is a `when` around the work,
 which is how selective grazing reads anyway: the animal moves on rather than issuing a
 statement about moving on.
 
@@ -823,7 +859,7 @@ direction a `graze` traverses — `from behind` forward, `from the front` revers
 
 It is one third of a model, not a modifier on iteration. Flight zone, pressure zone and
 the point of balance are Grandin's one system for moving an animal that would rather you
-did not, and the other two wait for v0.3 — see §12g.3.
+did not. Only the point of balance is built.
 
 **Laterality attaches to three forms** — calls, chords, and `flehmen` — because all three
 are acts of perception or expression, and those have a side. It is otherwise ambient: the
@@ -886,14 +922,14 @@ truth comes from comparisons and from members like `empty`, and a language with 
 is a language where a flag has to be a real reading of something. What counts as true is
 §8a; `or` joins **answers** and is not a default (§8a).
 
-**`range` sits above `comparison`**, not inside `primary`. In draft 2 it was a `primary`
-reachable from `sum`, which made `1 through 438` ambiguous with itself.
+**`range` sits above `comparison`**, not inside `primary`. Reachable from `sum` it would
+make `1 through 438` ambiguous with itself.
 
 **Comparison does not chain.** `a > b > c` is illegal; parenthesise or split.
 
 **`flehmen` is required for deep reads.** A value's detail is not directly accessible;
 flehmen routes it for finer analysis, as the animal routes an odour to the vomeronasal
-organ. It is a separate act and it takes time.
+organ. It is a separate act and it takes time. See §9a.
 
 `pile` is append-only, keyed, and persistent — the stud pile. It survives sessions, which
 is how training persists.
@@ -940,8 +976,8 @@ narrow cone ahead: depth is unavailable for most values.
 
 `hands` is where the language touches JavaScript, and the name is not decoration: it is
 the human's side of a horse-human interface. §11 makes it flat and unconditioned on
-purpose — laterality, provenance and the effect system stop at it. But *unconditioned*
-had been implemented as *unobserved*, and those are different things.
+purpose — laterality, provenance and the effect system stop at it. Unconditioned is not
+the same as unobserved, and this section is the difference.
 
 ### Pressure and release
 
@@ -981,11 +1017,9 @@ knowable from the syntax, and the list is where it bites in practice.
 
 `leave` ends the program. Past the point where the program has ended there is nothing
 left to end — and a cue handed to the page gets called back into long after the lead mare
-released. Such a `leave` used to travel out as a throw and land in whatever called it: in
-a browser, an uncaught error inside an event handler, taking the rest of that dispatch
-with it.
-
-It is now contained and noted. Mejdell's rule cuts both ways: an answer has to be given
+released. Such a `leave` is **contained and noted** rather than thrown: outside the
+program it would land in whatever called it, which in a browser is an uncaught error
+inside an event handler, taking the rest of that dispatch with it. Mejdell's rule cuts both ways: an answer has to be given
 *to* someone, and an answer with no listener is information about the listener rather than
 a fault in the animal.
 
@@ -995,9 +1029,6 @@ A horse cannot fail quietly at the human boundary. Unclear or contradictory sign
 produce **conflict behaviour** — head-tossing, tail-swishing, teeth-grinding, hollowing —
 which is observable, and which the welfare literature is built on reading. Silence arrives
 only at the end of the progression, as learned helplessness.
-
-Before v0.4 this boundary sat permanently at that end. §10 warns that `flood` produces
-learned helplessness, and `hands` was implementing it as a default.
 
 ### The weight
 
@@ -1026,9 +1057,36 @@ handler asking the same question and getting nothing back, and the boundary says
 `hands` is `globalThis`, so none of this can be done with a proxy without breaking
 identity and slowing every hot path. The emitter knows each path syntactically and wraps
 at the emit site instead — which also means the weight is only on paths *rooted in
-`hands`*. A method on a locally bound object is not counted: §13 item 23 says members are
+`hands`*. A method on a locally bound object is not counted: §12 says members are
 unresolvable by nature, and guessing which of them came from the boundary would be exactly
 that guess.
+
+### The same fault in value position
+
+`channel.play` alone on a line is refused because nothing was asked for. The same
+mistake inside an expression cannot be refused, because there the path *does* go
+somewhere — and it goes there as a **function**:
+
+| Written | Answers | |
+|---|---|---|
+| `now.getTime - 1000` | `NaN` | a sum with nothing in it |
+| `count.at > 10` | `false` | however many there are, and the wrong branch runs |
+| `"n: " + count.at` | `"n: () => 42"` | JavaScript source, in whatever the page shows |
+
+None of the three is an error and all three are wrong. The comparison is the worst,
+because it does not even come back as nothing — it comes back as an answer.
+
+**Reported at runtime, not refused at compile time.** The compiler cannot know what is
+on the other side of a member path (§12), and the value is not wrong either:
+§8a already decided a failed sum is bare, and that bare is the honest answer to a
+question that had none. What was missing was anyone saying why it had none.
+
+**`=` and `!=` are exempt.** Two names may hold the same cue and asking whether they do
+is a real question. Everything else that treats an operand as a value — `+ - * / %` and
+`> < >= <=` — says so when handed a method.
+
+A cue is the provable half of the same fault: `draw - 1` is refused outright, because
+the resolver knows what `draw` is.
 
 ### Saying it out loud
 
@@ -1039,615 +1097,77 @@ program would be delivered before any of it.
 
 Late is its own fault here. The language says so about release timing (§3), and the same
 applies to what it says about itself: a diagnostic arriving long after the thing it
-describes is not information about the thing. Through v0.4 the runtime collected every one
-of these into an array that nothing ever read.
+describes is not information about the thing.
 
 ---
 
-## 12. Closed in draft 2
-
-| # | Gap | Resolution |
-|---|---|---|
-| 1 | Chord nesting | Illegal — an utterance is one utterance (§4) |
-| 2, 10 | Multi-line chords, newlines in brackets | Layout suppressed inside chords, `[ ]`, `( )` (§1.4) |
-| 3 | Affect arithmetic | Component-wise; scalars hit arousal only; collapse is a type error (§9) |
-| 4 | Where laterality attaches | Calls, chords, `flehmen` (§10) |
-| 5 | Range syntax | Keep `through`. It reads, and it's cheap |
-| 6 | `stand` classification | Own statement class — it is the absence of gait, and the only breakable form (§7) |
-| 8 | `stand … otherwise` | Explicit. Implicit refusal would contradict `blank` (§7) |
-| 9 | Does a `stand` body iterate | Yes, and the bound progress updates each pass (§7) |
-| 11 | `context` as a statement | Legal at both declaration and statement level (§8) |
-| 12 | Collection iteration | `graze` — the horse's actual iteration behaviour (§6.1) |
-| 13 | Higher-order cues | Bare name in expression position. No analogue, so no ceremony (§3) |
-| 14 | Randomness | Three distinct constructs: `forage`, `recognise`, `weather` (§6.2–6.4) |
-| 15 | Member-path assignment | `assignment` takes a `postfix` path (§11) |
-| 16 | Trailing call modifiers | Removed. Positional bare arguments only (§3) |
-| 19 | `genotype` tax | Optional, defaults to `CA`. Only gated gaits pay (§2) |
-
-## 12a. Closed in draft 3 — found by auditing the grammar, not the examples
-
-Eight of these made the grammar unimplementable as written. None were on the open list;
-they were found by reading the productions against each other.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| Zero-argument call | `call` allowed `{ argument }`, so bare `draw` was both `ident` and a zero-arg `call` — ambiguous, and it destroyed the cue-vs-call distinction | `call` requires ≥1 argument; zero-arg only via `(draw)` (§3) |
-| Argument type | `argument = primary`, so `develop target[1]` could not parse — indexing lives in `postfix` | `argument = postfix` (§3) |
-| Application nesting | Unstated whether `develop a b` means `develop(a,b)` or `develop(a(b))` | Left-associative; nesting requires parentheses (§3) |
-| `expression_stmt` | Referenced in `statement`, never defined | Defined (§11) |
-| `handler` unreachable | Defined, but no statement form admitted `hears`, so no context could contain one | A context *is* a set of handlers — `{ handler }`, at least one (§8) |
-| No logical operators | `comparison` allowed one comparison and nothing joined them. `when a > 1 and b < 2` was inexpressible | `and`, `or`, `not` with conventional precedence (§11) |
-| Emission vs call | `signal` admits a bare `ident`, so a lone identifier on a line was both | Resolved in semantic analysis: emission if the name is built-in or a visible `hears`, else a call (§8) |
-| `range` ambiguity | `range = sum "through" sum` sat inside `primary`, which is reachable from `sum` — ambiguous with itself | Lifted above `comparison` (§11) |
-
-Also settled while auditing: no truth literals (truth comes from comparisons and members —
-a language with no `true` is one where a flag must be a real reading of something); no
-string escapes or interpolation (formatting goes through `hands`); comparison does not
-chain; and **a cue that reaches its end without `release` is a compile error**, since an
-implicit terminal outcome is exactly what `balk` and `blank` exist to forbid.
-
-## 12b. Closed in draft 4 — found by running the lexer
-
-Two gaps that only surfaced once real files were tokenized. Both made a documented
-feature impossible to write, and neither was reachable by reading the grammar.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| `~` only prefixed literals | `graded = "~" , ["-"] , number` meant `tension ~held` could not parse — so the chord that motivates `stand … as held` was inexpressible, and the progress binding had nothing to bind into | `~` marks any operand: literal, path, or parenthesised expression (§1.3) |
-| Uppercase was reserved everywhere | Every DOM name is camelCase — `createElement`, `backgroundImage`, `addEventListener` — so `hands` could not reach JavaScript at all. The escape hatch was sealed | Member position admits uppercase; standalone identifiers do not. FACS codes never appear as members, so nothing collides (§1.3) |
-
-The second is the more instructive: `hands` was specified, documented, cited, and used in
-an example, and it could not have worked. Nothing short of tokenizing a real file would
-have caught it.
-
-## 12c. Closed in draft 5 — found by running the parser
-
-Eight more. The pattern by now is clear: **specifying a literal where a program will
-want a name** accounts for most of them, and no amount of reading catches that.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| `lead mare cue draw` | The grammar made `cue` mandatory after `lead mare`; every example wrote `lead mare draw`, which reads far better and is what `lead mare` already means | `cue` is optional after `lead mare` (§3) |
-| `halt` demanded a block | `halt` sat in `gait_head`, so `gait = gait_head newline block` required a body. Nothing happens *during* a halt | `halt` is a terminal statement with no block (§5) |
-| `stand 10s` only | `stand` took a literal `duration` and `distance`, but real programs bind them — `stand hold within jitter`. Same class as the `~` bug in draft 4 | `stand`, `tolt every`, and `sentinel rotates every` take expressions, type-checked later (§5, §7, §11) |
-| Indexing was ambiguous | `[` after any expression indexed it, so `[["a" "b"] ["c" "d"]]` read the second list as a subscript of the first and silently lost an element | Indexing binds only when it touches its object: `target[1]` indexes, `[a] [b]` is two lists. Needs a whitespace flag from the lexer |
-| `[a b]` was ambiguous | Between two elements and one application | A list element is a `postfix`, not an application. Parenthesise to call — consistent with arguments (§11) |
-| Glue words unreachable | `bias` and `after` are not keywords, so `left bias` and `habituates after 3` both failed | `bias`, `eye`, `blind`, `after` are *recognised*, not reserved — the same policy as channels and weather conditions |
-| `ears back` was illegal | A state is `ident`, but `back` is a gait keyword — so the most ordinary ear position in the language could not be written | Channel states accept keywords as state names (§4) |
-| `(draw)` vs `(x + y)` | Parenthesising a lone path forces a zero-argument call, so `(x)` and `(x + y)` mean structurally different things | Kept as specified. Redundant parentheses around a single name are the only casualty, and nobody writes those — but it is a wart, recorded rather than hidden |
-
-Reserved-word policy, now settled across three passes: **recognise, don't reserve.**
-Channels, weather conditions, and glue words are all matched by the parser rather than
-claimed by the lexer, so `wind`, `head`, `bias`, and `after` all stay usable as names.
-Only words that begin a statement are keywords.
-
-## 12d. Closed in draft 6 — found by writing the resolver
-
-The resolver is `src/resolve.js`, between parse and emit. Writing it closed the last
-three deferred items and found one genuine design fault.
-
-**The design fault, and it is the important one.** Until now `every <duration>` belonged
-to `tolt` alone. That made `tolt` the language's **only unbounded loop** while also
-gating it behind an Icelandic genotype — so two of three example programs were declaring
-a breed purely to obtain a timer. Open item 19 asked whether the genotype gate was a tax;
-it was worse than a tax, it was a missing feature with a joke in front of it. It also
-contradicted §5's own claim that a gait is inherently iterative.
-
-`every` now holds **any** gait, which is what "a stride repeated" always meant. `tolt`
-keeps the distinction that is actually real: no suspension, so no gap between strides,
-where every other gait pauses.
-
-| Item | Resolution |
-|---|---|
-| Undefined and duplicate names | Reported, with declarations hoisted per block so forward references within a band work |
-| Arity | Checked against known cues; member calls are not checked, because the member cannot be known |
-| **Signal resolution (§8)** | Implemented. A bare name is an emission when a `hears` introduces it anywhere in the file — including *after* the emission — and a call otherwise. This is why the parser could not do it |
-| **Cue termination (§3)** | Enforced for the first time. It was specified in draft 2 and checked nowhere. Conservative: it reports only when nothing in the body names an outcome |
-| **Genotype gating (§2)** | Moved from a runtime throw to a compile error, which is what §2 always said it was |
-| Duration and distance (§5, §7) | Checked where the grammar accepts any expression, so `stand 20px` and `walk every 20px` are caught |
-| Band-size lint, flooding warning | Moved from runtime to compile time, where a lint belongs |
-| A bare cue name as a statement | New warning: `draw` alone is the cue, not a call. `(draw)` calls it |
-
-**`halt` is no longer part of `gait_head`.** It has its own production, since it takes no
-block and no `every`.
-
-Every example program failed the resolver on its first run — `fade-in`, `fade-out`,
-`oldest` and `play` were all free variables. They had been passing the emit tests because
-importing a module parses it without running it. The examples are now self-contained.
-
-## 12e. Closed in draft 7 — found by building the browser host
-
-The loader is `src/browser.js`; the page is `playground.html`. Building the delivery
-model found six bugs, three of which meant a documented feature had never worked.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **A held gait had no exit** | `halt` was a no-op, so `walk every 7s` ran forever. Only `leave` (ends the program) or the host could stop it — a program could not stop its own loop. Found by a test suite that hung | `halt` ends the innermost gait or sentinel it is inside, and nothing more. Outside a gait there is nothing to stop and it does nothing (§5) |
-| **`release` did not release** | Inside a gait, `graze` or `stand` body, `release` compiled to `return` inside that body's callback — so it left the callback and the cue carried on. Silently returned the wrong value | Every outcome now unwinds to the cue boundary, as `balk` and `leave` already did |
-| **`graze` over a list never worked** | Every Array has `.entries` as a *method*, and the Pile check tested it for truthiness — so grazing a plain list grabbed the function and threw. `exposure.horse` had been broken the whole time | Ordered checks: Forage, Pile, null, Array, iterable, then a refusal that says so |
-| Gait and sentinel bodies did not hoist | Each statement compiles to its own thunk, so a `remember` inside one emitted an undeclared assignment | Bodies hoist, and a held gait's bindings survive between strides |
-| `~(x)` exempted itself | Graded parsing handled `(` itself, bypassing the rule that parenthesising a lone path calls it — so `~(draw)` was the cue, not its result | Graded operands go through `postfix` like everything else |
-| Nothing warned about an unbounded loop | Written twice by accident inside an hour | A held gait with no `halt` or `leave` anywhere in its body warns. Page programs legitimately have none, and the warning is still right to fire |
-
-**Not a bug, now documented:** a `halt` cannot un-strike a hoof already down. A trot's
-diagonal pair runs concurrently, so halting one does not stop the other — they had
-already landed. Only a sequential gait can be cut mid-stride.
-
-**Three of these were invisible because a test imported a module instead of running
-it.** Importing parses; it does not execute. Both the emit and browser suites now run
-the examples, with a lent DOM and a host that stops held gaits after one stride.
-
-## 12f. Closed in draft 8 — found by converting production code
-
-The first conversion of a real, live mechanism: a date-gated feature that rewrites a
-page's links on one night in twenty-nine and does nothing on the other twenty-eight.
-Twenty-two lines of JavaScript. It found six problems, three of which made the language
-unable to do the job at all.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **No `new`** | `hands` was a one-way hatch: methods callable and properties readable, but constructors out of reach. Real code needed `new Date(…)` in its first five lines | `new` constructs, confined to a `hands` path. No equine analogue, so it stays plain (§11) |
-| **No modulo** | `%` was simply absent. A cyclic calculation cannot be written without it, and this codebase uses it constantly | `%` at product precedence. It is also a distance unit, so it is disambiguated by whitespace exactly as `-` is: `50%` is a distance, `50 % 3` is modulo (§1.2, §11) |
-| **Method calls lost their receiver** | A call whose callee was a member routed through `H.call`, which invoked it **detached** — `this` undefined. Every DOM method call in the conversion was broken, and the failure was `Value of "this" must be of type URLSearchParams` at runtime, not at compile time | A cue is always a bare name, so a Member or Index callee is a JavaScript method and is emitted with its receiver attached, unconditioned. Binding a value out of `hands` does not bring it inside the effect system |
-| The band lint fired on natural sizes | Set at 4 declarations. But a band is one stallion, two to four mares, *and their offspring* — six to eight is ordinary. The lint was wrong, not the code | Threshold raised to 8, in both the resolver and the runtime |
-| Comment-only lines escaped the ASCII check | `layout()` consumes a full-line comment with its own end-of-line skip, so §1.1's "no exceptions" had one — and every comment in the codebase is a full-line comment | The check lives in `skipComment`, which both paths call. This matters most for inline source: a stray byte shows up garbled in View Source, which is the surface the delivery model exists to serve |
-| The CLI could not read HTML | Source has to be inline for View Source to show it, so HTML is where source lives — and the validator could only read `.horse` files. A separate `.horse` copy would have been a duplicate waiting to drift | `check`, `emit` and `tokens` extract every inline block from an `.html` file, with line offsets so reported positions point into the page |
-
-### Friction that is not a bug
-
-Two things made the conversion harder to write correctly than it should have been, and
-neither is wrong — but both are silent when you get them wrong.
-
-**A zero-argument call needs parentheses**, so `now.getTime` is the method and
-`(now.getTime)` calls it. Written the first way inside arithmetic, the program subtracts
-two *functions* and gets `NaN` — no error, at compile time or run time. The rule is
-right; the failure is quiet.
-
-**Arguments are postfix**, so an expression argument needs parentheses:
-`link.setAttribute "href" (base + rest)`. Without them, application stops at `base` and
-the `+` dangles.
-
-### The honest cost
-
-Seventy lines of HORSEtxt for twenty-two lines of JavaScript, most of the difference
-being that every cue must name its outcome and that one function with early returns
-became four cues.
-
-What the length buys is that the ordinary case is now stated rather than implied: the
-JavaScript said `if (!isFullMoon()) return;` and the HORSEtxt says `leave` — a terminal
-success, twenty-seven nights in twenty-nine. The storage read that might throw says
-`spook … habituates after 1` instead of a bare `catch {}`. Whether that is worth three
-times the lines is a judgement, and it should be made per mechanism rather than assumed.
-
-## 12g. The perception model (v0.2)
-
-Laterality has been threaded through calls, chords and `flehmen` since v0.1, and has
-been consequential in exactly one of them. It only becomes consequential if *perceiving*
-is an act with limits — which is what this section settles.
-
-**The risk here is invention.** Values do not have positions in a 350° field. Building a
-spatial model so that "blind spot" has something to mean would be precisely the failure
-§0 forbids: a rule that cannot be traced to a citation is not foreign, it is bad. So some
-of the body's limits map and some do not, and the ones that do not are declined below
-rather than forced.
-
-### 12g.1 What perception applies to
-
-**Only to what is perceived.** A value that crossed in from outside — through `hands`,
-carried by a signal, or handed over by a `graze` — is a thing in the world. A number you
-computed is not perceived, it is held, and nothing about eyes applies to it.
-
-### 12g.2 Adopted
-
-**Laterality decides what a look yields.** The left eye feeds the right hemisphere, which
-handles novelty, threat, predator detection and escape; the right eye feeds the left,
-which does analytical categorisation. So the side is not decoration on the same
-operation — it selects *which question you asked*:
-
-- `flehmen x from the left` — is this new, is this a threat. Raises `novel` for anything
-  this animal has not met.
-- `flehmen x from the right` — what kind of thing is this. Yields a category.
-
-Unstated, the ambient side decides, and the ambient side comes from the individual's bias
-and shifts with the enclosing block, because sensory laterality shifts faster and more
-situationally than motor laterality.
-
-**Flehmen requires attention.** An animal with both ears flattened is agonistic and is
-not attending, and a horse's attention is read from eyes *and* ears together. So a chord
-that closes agonistic cannot route anything for finer analysis: `flehmen` inside it
-balks. The two mechanisms were already in the language and were not connected.
-
-**A cue cannot flehmen its own parameters.** A horse cannot see its own muzzle: what it
-is holding is exactly what it cannot look at. What was handed to you is at your muzzle.
-You may use it, pass it, read a member of it — you may not route it for analysis. To
-inspect it, let it go and meet it again.
-
-**The point of balance gives direction.** Pressure behind the shoulder drives an animal
-forward; in front of it, backward. So `graze xs from behind` traverses forward and
-`graze xs from the front` traverses in reverse.
-
-**The point of balance gives a `graze` its direction**, and that is all of the approach
-model that lands here. The rest of it is §12g.3.
-
-### 12g.3 Removed: the zone construct
-
-`flight zone` and `pressure zone` wrapped a block of declarations and were described as
-graded access control — approach a binding from outside its band and it moves away. The
-construct is **removed**, and not because it was unenforceable.
-
-It described something horses do not have.
-
-**A flight zone is a property of the animal, not of its data.** Grandin is explicit: it
-is the animal's personal space, and *its size is determined by the wildness or tameness
-of the animal* — animals handled often have smaller flight zones than those with little
-contact with people. It is a radius around a horse, not a fence around a possession. The
-block form was the human-engineer reading: it pattern-matched `private` and built scope.
-
-Read correctly, the three parts are **one system** — the geometry of being approached:
-
-| | |
-|---|---|
-| flight zone | get this close and the animal leaves. A cue that declines when reached for |
-| pressure zone | it turns to face you but does not move. The call registers; the thing does not happen |
-| point of balance | where you stand decides which way it goes |
-
-They were split across three unrelated features, and the point of balance shipped alone
-on `graze` without anyone noticing it was a third of a mechanism.
-
-**They wait for v0.3**, because the size of a flight zone is set by handling history —
-which is trials-to-criterion arriving from the other direction. An animal handled often
-lets you close; an unhandled one keeps its distance and turns to face you. Those inputs
-do not exist until the individual has a history, so nothing about the model is
-implementable now.
-
-*(The parser never had a `parseZone`, so no program could contain a zone and nothing
-breaks by removing it. That absence is why a documented, resolver-aware,
-emitter-aware construct sat dead from v0.1 until someone tried to write one.)*
-
-### 12g.4 Declined, and why
-
-**Binocular depth splitting `=`.** The temptation was to make structural comparison
-require the narrow forward cone, so `=` is deep when facing and shallow otherwise. There
-is no honest route from "65° of binocular field" to "deep versus shallow equality"
-without giving values positions, and an `=` that is sometimes deep is unpredictable
-rather than foreign. A reader could not derive it, only memorise it. Declined.
-
-**Requiring `flehmen` for ordinary member access.** §2.6.2(d) says there is no direct
-deep inspection, and taken literally that would mean `link.getAttribute` needs routing
-first. Applied to the first real conversion it would have roughly doubled a page of
-straightforward DOM work for nothing. **"Deep read" is therefore narrowed to novelty and
-category** — the two things the hemispheres actually specialise in. Reading a named
-member of something you already have is eating food you already recognise.
-
-**Dichromacy.** 428nm and 539nm are a constraint on what a host should *render*, not on
-what the language should compute. It stays advisory, in the bibliography.
-
-## 12h. Closed in v0.2 — the body and its limits
-
-Weather became a system, laterality became consequential, and gaits became what §5 had
-been calling them since draft 1. Five defects surfaced, three of them in claims the
-documentation had been making for several drafts.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **`weather` could not be the random source** | Implementing it faithfully proved it: weather is slow, shared and correlated, so three reads in an instant give one answer. A program gating three audio channels on `weather.wet` silenced all of them together | `chance` restored as a fresh draw (§6.5). Four constructs, three of them ways of not knowing |
-| **`flies` was unreachable** | Multiplying four sub-unit factors crushed the largest behavioural driver of the five to a maximum of **0.07 across a whole year** | Suppression rather than exclusion. It now peaks in July and is zero all winter |
-| **Air temperature sat at freezing year-round** | Averaging two noise signals narrows the distribution toward its middle, so every warm-weather reading downstream was stuck at zero | The year is a real cycle, not noise. Seasons are deterministic |
-| **Novelty keyed on the wrong thing** | `flehmen` reused `shape()`, which keys *error* habituation on a value's kind — so every string was one stimulus and meeting one counted as meeting all of them | A separate `trace()`: a thing you can hold is identified by what it is, a thing with parts by its parts. Which is also why a familiar object rotated reads as novel |
-| **`gait()` never forwarded its options** | `lead` and a supplied vector were accepted and then dropped, so a canter on the far side was identical to one on the near side | Options reach the stride |
-
-### The gait schedules were wrong
-
-Representing a gait as a phase vector rather than a switch case exposed two schedules
-that had been wrong since v0.1 and that nothing could have caught while the answer was
-hand-written:
-
-- **A gallop is not full fan-out.** It ran every statement at once. A moving horse never
-  has four hooves down together; a gallop is four separate beats and then suspension. No
-  gait runs four statements concurrently, and none should.
-- **A trot was pairing by adjacency, not diagonally.** The helper grouped statements
-  `(0,1)` and `(2,3)`. The diagonals are LF+RH and RF+LH — statements `(1,2)` and
-  `(3,0)`. It had been calling itself a diagonal pairing while doing something else.
-
-The payoff for the representation is that interpolation yields real gaits: halfway from a
-walk to a pace comes out as a **stepping pace**, uneven and lateral in a 1-2, 3-4
-sequence, from the arithmetic rather than from a table.
-
-### Zones were removed
-
-See §12g.3. `flight zone` and `pressure zone` described access control over data; a
-flight zone is a property of the *animal*, sized by its handling history. The construct
-went, the point of balance stayed, and the model reunites in v0.3 where an individual has
-a history for the zone to be sized by.
-
-## 12i. Closed in v0.2.1 — found by porting a second production page
-
-Three defects, all found by writing one real program against v0.2.0 rather than by
-reading it. Two had been shipping since v0.1.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **Writing to a pile replaced it** | `STDLIB.md` has said "writing appends" since v0.1; the emitter emitted a plain assignment. So `passing becomes now` overwrote the pile with a number, `passing.count` read back `undefined`, and every derived figure was `NaN` — silently. Only the resolver knows a target is a pile, so it now marks the node | `H.leaveTrace`, and a pile is the only thing that can be left one |
-| **Storage was cached wrongly, twice** | The probe cached the `localStorage` *reference*, so a page that swapped it kept writing to the old one. Caching the *failure* instead then left storage permanently off after any throw — which in a plain Node process is always | Neither is cached. Access can throw and can come back empty, so both are simply tried each time |
-| **Two statements in a `trot` ran sequentially** | Statements were assigned to limbs by identity — statement 0 to the left hind — which put two of them on a hind and a fore of the *same side*, striking at different times. The canonical two-at-once gait therefore ran them one after the other, contradicting §5's own table | Statements fill the stride **in the order the beats happen**. See §5 |
-
-**A pile may now be read by position** (`marks`), which forage may not. The difference is
-where the order comes from: a pile's order is the order things happened, so reading a trail
-off it is the point, while forage's order is drawn and a position would make the draw
-reproducible.
-
-### Behaviour changed since v0.2.0
-
-The gait fix alters when statements run. A `trot` and a `pace` now pair two statements at a
-time for any count and schedule identically; a `canter` runs one, then a pair, then one; and
-a **lead no longer changes the schedule**, because mirroring permutes which limb strikes
-when rather than how many strike together, and statements have no limb to be led by.
-
-## 12j. Herds became real — v0.2.2
-
-The band-size lint told you to split and the language gave you no way to split, because
-bands could not see each other at all. That was the same isolation that killed zones, and
-asking whether herds co-mingle turned out to have a precise answer.
-
-**They do, and it is documented.** A drone survey of a hundred-plus feral horses found
-association rates that are *bimodal*: units nested inside a herd, inter-unit distances
-closer than chance, and behaviour synchronising **between** units. Boundaries are held by
-default — units grow cohesive as another approaches and elongate to avoid crossing — while
-particular pairs cross and intermix regularly. And all-male units occupy the herd's
-periphery while large mixed-sex units hold the centre.
-
-So the mechanism was not a choice to be invented. See §2.4:
-
-- `mingles with` — pairwise, and **both bands must name the other**, because a crossing is
-  mutual and one band's edit should not silently widen another's scope
-- a herd holds bands and nothing else; across herds, nothing
-- names are distinct across a herd: two bands are two sets of individuals
-- **a `bachelor` group sees every band without declaring, and none sees it** — the
-  periphery, and the first mechanism behind a claim `bachelor` has carried since draft 1
-
-The 13-declaration band that prompted this splits into two bands that mingle, and the
-warning goes quiet without duplicating anything.
-
-**A name that exists in the herd but was not shared says so**, rather than reading as a
-misspelling — which was the one cost worth worrying about when the design was proposed.
-
-## 12k. The face was leaking — v0.2.3
-
-Found by having a page *read* a posture rather than only style itself from one.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **A chord did not clear what it did not say** | `onChord` set `data-<channel>` for every channel a chord named and left the rest alone, so a channel from an earlier chord persisted. A program that opened its nostrils once was described as having them open for the rest of its life, and a host could not tell a held position from a leftover | The host clears any channel the new chord does not name. §4 already said a chord is *one* utterance with simultaneous channels; the host was treating it as a diff |
-
-This only matters for a host that reads the posture back. Styling from it was unaffected,
-which is why it survived three ported programs and 285 tests: a stale `data-lids` selector
-matches nothing anybody had written a rule for.
-
-## 12l. What a horse counts as true — v0.3
-
-The question that opened this was "what does a horse consider to be truth?", and it turned
-out the language had already answered it once, in one place, and then forgotten everywhere
-else.
-
-`blank` exists because of Mejdell 2016: the third symbol was a blank glyph the horse had
-to **press**, because no-change cannot be read off an animal standing still. §10 has said
-so since v0.1. And then every `when` in the language used JavaScript truthiness, where
-absence quietly becomes false — the exact inference Mejdell's design refuses.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **Zero and absence were the same thing** | `when 0` was false, so a count of none and no count at all were indistinguishable. Real programs leaned on it: a gallery held `attending as 0` to mean "not attending", which worked only because JavaScript agrees that nothing and none are one | Three states, §8a. An **answer** (yes/no from a comparison), a **thing** (present — `0`, `""`, `[]`), and **bare** (`null`, `undefined`, `NaN`). `when 0` is now true |
-| **`or` was being asked to be a default** | `given or 7` yields `true`, never `7`, because `or` joins answers and gives an answer back. Six occurrences per page across the site were waiting to be written wrong | Not a value-preserving `or` — a different construct. **Patch use**: a horse works a patch down and moves on, and bare ground does not feed it. `grass in [a b c]`, over a list because a field has more than two patches |
-| **Nothing abandoned one attempt** | §13 item 24. Worked around twice by inverting the guard, which reads backwards and nests deeper every time | `stumble`, §5a. Ends the stride and nothing else |
-
-**This is a breaking change**, and deliberately taken while it is cheap: three lines in one
-ported page and one edge case in another. It would not have been cheap at ten pages.
-
-`NaN` landing in bare is the detail worth keeping: it is what a question comes back as when
-it had no answer, which is not an answer of its own.
-
-## 12m. The boundary got weight — v0.4
-
-Six ports had produced six releases, one defect each, and the defect was in the same place
-every time: `hands`. §11 had made it flat and unconditioned by design, and *unobserved* had
-come along for free.
-
-Every one of them was a **silent wrong answer** rather than a crash. `channel.play` did
-nothing. A cue handed to `filter` passed everything. `given or 7` was `true`. `when 0` was
-false. A chord's unnamed channels stayed on the face. None of it threw.
-
-Which is exactly backwards from the animal. A horse cannot fail quietly at the human
-boundary: it produces conflict behaviour, loudly, and only goes silent at the far end of
-the progression as learned helplessness. The language warns about `flood` for that reason
-and had `hands` sitting there permanently.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **Pressure with no release** | A member path alone on a line reads the method and discards it. `channel.play` is silent and does nothing; `(channel.play)` calls it. Three instances in the first sketch of a fourth port, written by someone who knew about the trap | An error, §11a. The release is the information; a signal with no release is not a signal |
-| **Opposing signals** | A cue is async, so JavaScript gets a promise. Right for a listener, which discards it; wrong for `sort` or `filter`, which coerce it — a promise is truthy, so nothing is filtered and nothing is sorted, with no error | Refused for a named list of receivers, §11a. Rein and leg together is the canonical welfare fault, and this is its shape |
-| **`leave` escaped the page** | A cue handed to the page and called back into after the program ended threw `Leave` into an event handler as an uncaught error, taking the rest of that dispatch with it | Contained and noted. An answer has to be given *to* someone; one with no listener says something about the listener |
-| **A handler could not name what arrived** | §13 item 22. The emitter has passed the carried value since v0.1 and `hears` had no binding form, so a handler knew a signal had arrived and not what it brought | `hears snort as what`. The binding belongs to that handler: two handlers are two interpretations |
-
-The half not built is the interesting half — counting crossings that come back bare, and
-reporting at N. That is what would give the boundary weight rather than an alarm, and it
-is a contact rather than a switch. Built in v0.5, §12n — where it turned out there had
-been nowhere to report *to*.
-
-## 12n. The boundary got its weight, and cues became first-class — v0.5
-
-Two items had been sitting in §13 since v0.4, both deferred for the same stated reason:
-each belonged to a release about something other than the boundary. They turned out to be
-one release, because the second one is how the first one gets *said*.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **The boundary was a switch** | §13 item 25. It refused the two faults a compiler can see and then went quiet permanently. Nothing counted crossings that came back bare, so a page asking the same dead question every frame was indistinguishable from one being answered | Counted per path at the emit site, consecutively, reported once at three and then habituated. §11a |
-| **Cues were not first-class** | §13 item 26. `remember f as draw` then `(f)` reported "f is not a cue", so a dispatch table was inexpressible and every branch had to be written out — while a cue could still be handed *out* to JavaScript, which made the asymmetry strange | A name is followed home to what it holds. Known non-cues are still refused; the unknowable is left to the runtime. §3 |
-
-**And a third thing, found by building the first two.** The boundary reports at N, which
-needs somewhere to report *to* — and there wasn't one. `browser.js` surfaced compile
-errors, compile warnings and throws, while every runtime diagnostic went into an array
-nothing read. The one-second contract, the band-size lint and the empty-stall `leave` had
-been unobservable in the page since v0.1.
-
-Making them audible immediately produced a false positive on a live page, which is the
-part worth keeping:
-
-> `mirror.html` reported `reflect released after 1406ms`. The cue is the lead mare; its
-> time went into a `trot` and a `stand`, both of which are the animal deliberately taking
-> time. The budget had been measuring wall clock.
-
-The one-second contract is about **latency** — the gap between a signal and its answer,
-which is what the rein-tension work measures. A horse asked to stand for ten seconds and
-standing for ten seconds has answered immediately. Charging that to the budget warns an
-author for using the language's own primitives, and `stand` is the construct whose entire
-content is spending time. Now discounted, at every depth: gait intervals, stride beats,
-suspension, the sentinel's rotation, and the hold.
-
-This is the second time a diagnostic has been wrong in a way nobody could see. §12m found
-`hands` failing silently; this found the language's own reports doing it. **A warning that
-is never delivered and a warning that is wrong are the same defect**, and the only reason
-this one surfaced is that something finally listened.
-
-The sample named "a late release is punishing" had been demonstrating the false positive
-for four releases — it built its lateness entirely out of `walk every 300ms`. It now waits
-on the far side of the boundary, which is where lateness actually comes from, and it is
-written with a cue handed to `new hands.Promise` — a program that could not have been
-written before item 26 closed.
-
-## 12o. A stand could not be abandoned — v0.5.1
-
-Found by porting `components/losses-exposure.js`, which is the program §12 has been
-pointing at since draft 1: it is the `stand` primitive, it already existed in JavaScript,
-and the diff is the honest test.
-
-The port needed one thing the JavaScript did for free — end the exposure when the pointer
-leaves the row. A row can be wider than the jitter radius, so leaving it is a different
-fact from drifting twenty pixels, and the natural way to say it is a `balk` in the stand's
-body. It did nothing. The cue carried straight on past the stand and revealed the image
-against nobody.
-
-| Gap | Problem | Resolution |
-|---|---|---|
-| **Outcomes died in the host** | A stand's body is the one place a statement runs inside a *host* callback. `browserHost` calls it as `Promise.resolve(onProgress(t)).catch(() => {})` — so `balk`, `leave`, `blank` and `release` raised in a stand body were all discarded, and execution continued past the stand. Silent, since none of them is an error | Caught on the language's side of that boundary and raced against the hold. §7 |
-
-**The host is not at fault, and was not changed.** A host must not crash on a body it
-calls; catching is the right thing for it to do. What was wrong is that the language
-handed something across that boundary and then trusted the far side to preserve its
-semantics. That is the same mistake §12m found in `hands`, arriving from the other
-direction: there the language was silent about what came *back*, here it was silent about
-what went *out*.
-
-The hold is raced rather than merely flagged, so an exposure abandoned at one second of
-ten does not go on holding for nine more. The animal stopped standing when it said so.
-
-**Two more things this port found, both left alone:**
-
-- Four separate zero-argument calls were written as bare member paths (`hands.EN_ROOM.build`
-  rather than `(hands.EN_ROOM.build)`) across three converted pages, by someone who had
-  just finished writing the rule. §11a caught every one at compile time. `STDLIB.md` calls
-  this "the one that catches everybody" and the evidence is that it is right.
-- `examples/listening.horse` said `leave` where it meant `balk`, and had since v0.1: the
-  first silent channel ended the whole program, so no channel ever opened and the pulse
-  never started. `npm run check` passed it for five releases, because `check` resolves a
-  program and does not listen to one. The examples are now asked what they did rather than
-  only whether they survived.
-
-## 13. Still open
-
-17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
-    when a *second* program needs a member.
-19. ~~**The `genotype` tax.**~~ Closed in draft 6, as a real fault rather than a tax.
-22. ~~**A `hears` handler cannot name the value it receives.**~~ Closed in v0.4 —
-    `hears creak as v`, §8.
-24. ~~**Nothing abandons one attempt and keeps the gait.**~~ Closed in v0.3 — `stumble`,
-    §5a. A horse that puts a hoof down badly does not stop walking.
-23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
-    member name survives to runtime. That is the price of `hands` being a flat boundary
-    onto JavaScript, and it is probably the right price.
-
-    One corner of it turned up while porting: `when hands.SOMETHING.ready` reads the
-    *method* and asks whether it is there, which it always is. The information wanted was
-    what it answers, and `(hands.SOMETHING.ready)` is how to ask. §11a refuses this shape
-    as a statement and cannot refuse it here, because in a condition the path does go
-    somewhere — and because testing that a method exists is **feature detection**, which
-    is legitimate and common at this boundary. Not fixable without knowing what is on the
-    other side, which is item 23 itself. The half that *is* catchable — a path that comes
-    back bare — is now counted (§11a).
-18. **The voice channels went unused.** Across four ported programs `whinny` and `nicker`
-    never appeared, and `snort`/`squeal` only inside a `context` that assigned their
-    meaning locally. Evidence that voice is a smaller part of the language than the design
-    assumed — or that nothing has yet been far enough away to need calling to. A whinny is
-    the contact call between separated animals, and every band so far has shared a scope.
-    See item 28. Watch it; don't act yet.
-
-    v0.5 does not move this either way, and is worth recording as a near miss: the
-    boundary now *speaks* when a crossing goes unanswered, and it does so as a diagnostic
-    rather than as a voice channel. That was not a considered choice — a note is the
-    compiler's register and a whinny is the animal's, and a boundary calling out to
-    nobody is arguably the better reading of both. Left alone because acting on it would
-    be acting on item 18 without the evidence item 18 is waiting for.
-20. **Welfare's observable surface.** Welfare gates capability, but nothing says how a
-    program reads its own welfare, or whether it may. Deferred to v0.3 — which then
-    landed truth instead, and welfare has never been built: the word appears nowhere in
-    the lexer, parser or resolver. The deferral is the stale part, not the item. It wants
-    a release of its own, or a decision that a program does not get to read its own
-    welfare, which is defensible and would close this.
-21. **`graze` over `forage`.** `deck.graze` (draw one) and `graze deck as x` (traverse
-    all) use the same word for a single draw and a full traversal. Defensible — both are
-    grazing — but a reader will trip. Watch.
-25. ~~**The boundary has no weight yet.**~~ Closed in v0.5 — counted per path at the emit
-    site, said once at three, then habituated. §11a.
-26. ~~**Cues are not first-class within the language.**~~ Closed in v0.5 — a name is
-    followed home to the cue it holds. §3.
-30. **A duration cannot be computed.** Durations and distances do not mix with numbers
-    (`STDLIB.md`), which is right for `10s + 3` and wrong for `10s * 0.5`. Scaling a
-    quantity by a scalar is dimensionally sound, and adding two durations is too — but
-    neither is expressible, so **a gait's interval cannot vary at runtime**. Found
-    porting `static.html`, where transmissions arrived every 8–18 seconds: there is no
-    way to say that. The workaround is a steady gait and a counter, which reads better
-    than the arithmetic would have, so this is recorded rather than fixed. What would
-    settle it is a second program wanting a computed interval — and the honest question
-    first, which is whether a horse has any concept of a *varying* tempo, or only of a
-    gait it is in.
-29. **A value cannot be waited on.** A cue can now be handed to `new hands.Promise`, so
-    the language can *produce* a promise — and it has no way to wait on one it is holding.
-    Awaiting happens only at call sites, so `remember p as ...` then wanting its answer
-    means calling a member on it (`(p.then)`), which is the workaround the late-release
-    sample is written around. Found by writing that sample. Recorded rather than fixed:
-    the equine reading of "wait for something already asked for" is not obvious, and
-    inventing a keyword before the reading exists is what principle zero forbids.
-28. **Work that happens somewhere else.** Designed, not built, and parked because the
-    problem that prompted it turned out to be elsewhere. Recorded because the grounding
-    is unusually clean and would be a shame to re-derive.
-
-    A `bachelor` group already means *sees every band, and no band sees it* (§2.4), and
-    that one-way visibility is exactly an isolate: data flows in, nothing reaches back
-    except by message. So off-thread work belongs there and nowhere else.
-
-    - `bachelor rendering out of sight` — `out of sight` is not decoration. It is the
-      condition under which a horse uses its long-range call, and it is what a worker
-      is: no shared scope, nothing visible from either side.
-    - **A cue out of sight cannot `release`.** There is nobody there to hand anything
-      to. It `whinny`s, and the band `hears` it later — which is what a whinny *is*, the
-      contact call between separated animals. This is very likely the answer to item 18:
-      voice went unused across four ported programs because nothing in the language had
-      ever been far enough away to need it.
-    - **Work divides by field, not by queue.** Horses have no dispatcher and no
-      work-stealing; what a herd divides is *attention*. The many-eyes effect is each
-      animal covering its own direction, and coverage being the union. So the runtime
-      splits a list evenly across the group, one share per animal, once.
-    - `hands` inside such a group is a **different world** — a worker's `globalThis` has
-      no document. Semantically right for the periphery, and a large change: `hands`
-      stops being one boundary and becomes one per locale.
-    - The worker source must be emitted from the same inline block and wrapped in a Blob
-      URL. A separate file would break the reason the language is delivered as source.
-
-    Cost: a second compilation target, an isolate boundary, and a new meaning for
-    `hands`. Do not build it without a measurement showing main-thread CPU is the
-    bottleneck.
-27. **No object literals, and no string escapes.** `f({pan: -1})` is unwritable and so is
-    inline JSON, since `"` cannot be escaped. The workaround is two plain lines —
-    `hands.JSON.parse "{}"` then a member assignment — and principle zero says an options
-    bag has no equine reading, so this may be correct as it stands. Recorded because it
-    turned up in two ports, not because it needs fixing.
+## 12. Limits
+
+What the language does not do. Some of these are chosen and some are merely true; the
+difference is said in each case.
+
+**Members are unresolvable.** `x.foo` is never checked, so a typo in a member name
+survives to runtime. This is the price of `hands` being a flat boundary onto JavaScript
+(§11), and it is the right price — checking would mean knowing what is on the other side,
+which is the thing the boundary exists not to know.
+
+One shape of it is worth naming: `when hands.SOMETHING.ready` reads the *method* and asks
+whether it is there, which it always is. `(hands.SOMETHING.ready)` asks what it answers.
+This cannot be refused, because testing that a method exists is feature detection and
+legitimate. The catchable half — a path that comes back bare, or one used as a value — is
+reported (§11a).
+
+**A duration cannot be computed.** Durations and distances do not mix with numbers
+(`STDLIB.md`). `10s + 3` is meaningless and rejecting it is right; `10s * 0.5` is
+dimensionally sound and rejected too. So **a gait's interval cannot vary at runtime** —
+an interval is a duration literal or a name holding one. A steady gait and a counter is
+how a varying wait is written.
+
+Open, rather than settled: whether a horse has any concept of a *varying* tempo, or only
+of the gait it is in.
+
+**A value cannot be waited on.** A cue can be handed to `new hands.Promise`, so the
+language can produce a promise, and it has no way to wait on one it is holding. Awaiting
+happens at call sites only, so asking a held promise for its answer means calling a member
+on it — `(p.then)`.
+
+Open, rather than settled: "wait for something already asked for" has no obvious equine
+reading, and principle zero forbids inventing a keyword before the reading exists.
+
+**No object literals, and no string escapes.** `f({pan: -1})` is unwritable, and so is
+inline JSON, since `"` cannot be escaped. Two plain lines do it — `hands.JSON.parse "{}"`
+and then a member assignment. Principle zero says an options bag has no equine reading, so
+this is likely correct as it stands.
+
+**Welfare has no observable surface.** Welfare gates capability, and nothing says how a
+program reads its own welfare or whether it may. Unbuilt rather than decided.
+
+**`graze` carries two meanings.** `deck.graze` draws one; `graze deck as x` traverses all.
+Both are grazing, and a reader will still trip.
+
+**The voice channels are little used.** Across the ported programs `whinny` and `nicker`
+do not appear, and `snort`/`squeal` only inside a `context` that assigns their meaning
+locally. A whinny is the contact call between separated animals, and every band so far has
+shared a scope — so this may be a fact about the programs rather than about the language.
+
+## 13. Off-thread work, designed and unbuilt
+
+A `bachelor` group means *sees every band, and no band sees it* (§2.4). That one-way
+visibility is exactly an isolate — data flows in, nothing reaches back except by message —
+so work that happens somewhere else belongs there and nowhere else.
+
+- `bachelor rendering out of sight`. `out of sight` is the condition under which a horse
+  uses its long-range call, and it is what a worker is: no shared scope, nothing visible
+  from either side.
+- **A cue out of sight cannot `release`.** There is nobody to hand anything to. It
+  `whinny`s, and the band `hears` it later, which is what a whinny is.
+- **Work divides by field, not by queue.** Horses have no dispatcher and no work-stealing.
+  What a herd divides is *attention*: each animal covers its own direction and coverage is
+  the union. So a list is split evenly across the group, one share per animal, once.
+- **`hands` becomes one boundary per locale.** A worker's `globalThis` has no document.
+  Semantically right for the periphery, and the largest part of the change.
+- The worker source is emitted from the same inline block and wrapped in a Blob URL. A
+  separate file would break the reason the language is delivered as source.
+
+Cost: a second compilation target, an isolate boundary, and a new meaning for `hands`. Not
+to be built without a measurement showing main-thread CPU is the bottleneck.

@@ -492,6 +492,64 @@ T("exposure.horse binds rather than standing at load", async () => {
   }
 });
 
+// STDLIB.md documented `count`, `empty`, `first` and `last` on a list for five
+// releases. None had ever existed — a list emits as a plain array, no member is
+// resolved (§13 item 23), and all four came back bare, silently. Nothing used
+// them, which is exactly why nothing caught it.
+//
+// The decision is that a list has no members of its own: it is a value, and §11
+// makes the boundary onto values flat. `xs.length` is how you ask. This test is
+// here so that decision is written somewhere that runs.
+
+T("a list has no members of its own", async () => {
+  globalThis.OUT = [];
+  const r = await runSource([
+    "band a",
+    "    lead mare go",
+    "        remember xs as [10 20 30]",
+    "        hands.OUT.push xs.count",
+    "        hands.OUT.push xs.empty",
+    "        hands.OUT.push xs.first",
+    "        hands.OUT.push xs.last",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {});
+  eq(r.errors.length, 0, JSON.stringify(r.errors));
+  eq(globalThis.OUT, [null, null, null, null], "the language's vocabulary is not a list's");
+});
+
+T("a list answers JavaScript's vocabulary through the flat boundary", async () => {
+  globalThis.OUT = [];
+  await runSource([
+    "band a",
+    "    lead mare go",
+    "        remember xs as [10 20 30]",
+    "        hands.OUT.push xs.length",
+    "        hands.OUT.push xs[0]",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {});
+  eq(globalThis.OUT, [3, 10]);
+});
+
+// GRAMMAR.md §10, and the other half of the same correction. STDLIB said filtering
+// a graze was a `blank` in its body; a blank leaves the cue, not the iteration.
+T("a blank in a graze body leaves the cue, it does not skip", async () => {
+  globalThis.OUT = [];
+  await runSource([
+    "band a",
+    "    lead mare go",
+    "        graze [1 2 3 4] as n",
+    "            when n = 2",
+    "                blank",
+    "            hands.OUT.push n",
+    '        hands.OUT.push "after"',
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {});
+  eq(globalThis.OUT, [1], "a skip would have collected 1, 3, 4 and then carried on");
+});
+
 T("grazing works over a list, a forage and a pile", async () => {
   const { Horse: H0, forage, pile } = await import("../src/runtime.js");
   const H = new H0({});
