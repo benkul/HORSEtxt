@@ -25,6 +25,13 @@ emitter, runtime, browser loader, host, CLI, and a playground.
 
 `GRAMMAR.md` is the specification; §12 there is what the language does not do.
 
+**The horse is watchable while it runs.** `src/debugger.js` renders every emission as a
+frame — its locus and the answer it got, including the two silences — and `src/horse.js`
+stands a drawn horse beside it reading the same stream. Ears, head, nostrils, lids, tail
+and tension all trace to the bibliography, and an agonistic animal dims and retreats
+because it is not attending: the trace shows exactly as much as the horse is showing.
+Both are live in the playground. §14.
+
 **The documents are checked.** `test/claims.test.js` executes every testable claim the
 docs make — one test per sentence, named for the claim and the section it comes from. A
 failure reads as the sentence that is no longer true. Prose is not checked by anything
@@ -107,20 +114,11 @@ emission, not with a source map.
 
 Beyond that, the parts of the design still ahead of the implementation:
 
-- **A real debugger.** `src/debugger.js` renders the horse's true state — every
-  emission as a frame, labelled with its locus and the answer it got — and the
-  ears/head states change what you see (see `test/debugger.test.js`,
-  `examples/trace.horse`, and GRAMMAR.md §12n). The trace is live in the playground.
-  **And the horse itself is drawn.** `src/horse.js` stands a real horse beside the
-  trace, reading the same stream: ears flatten and the whole body dims and retreats
-  when the animal is agonistic (EAD103) and not attending; a high head rears, a low
-  head sinks; a divided ear points one ear each way and the two eyes look different
-  ways. Nostrils, lids, tail and tension all trace to the bibliography
-  (`test/horse.test.js`, `examples/moods.horse`, GRAMMAR.md §12n.1, `docs/horse/`).
-  What is not built yet is the standalone debugger panel with stepping.
+- **A debugger panel that steps.** The trace and the drawn horse exist and are live in
+  the playground (§14); what is missing is a standalone panel that can hold a program
+  still and walk it.
 - **History as semantics.** Trials-to-criterion training, so a newly defined cue is not
-  reliable until it has been run. Late-release degradation toward learned helplessness.
-  Welfare as a capability gate.
+  reliable until it has been run. Welfare as a capability gate.
 - **The approach model**, whole: flight zone, pressure zone and the point of balance are
   one system for moving an animal that would rather you did not, and the size of a flight
   zone is set by handling history. Only the point of balance exists today; the other two

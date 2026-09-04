@@ -277,6 +277,75 @@ claim("§9a", "an agonistic chord stops a handler firing", async () => {
   return eq(out, []);
 });
 
+// §8 a context declared beside the lead mare -------------------------------
+//
+// A context governs the rest of its block (§8), and the lead mare is part of that
+// rest when she is declared after it — so she runs with it still on the stack.
+// Declared before it, she is not governed by it and is still the group's to call.
+// Either way she is entered exactly once.
+
+claim("§8", "a context before the lead mare governs her", async () => {
+  const { out } = await ranSrc(`band a
+    context near
+        hears snort
+            hands.OUT.push "heard"
+    lead mare go
+        snort 1
+        release`);
+  return eq(out, ["heard"]);
+});
+
+claim("§8", "a context after the lead mare does not stop her running", async () => {
+  const { out } = await ranSrc(`band a
+    lead mare go
+        hands.OUT.push "ran"
+        release
+    context near
+        hears snort
+            hands.OUT.push "heard"`);
+  return eq(out, ["ran"]);
+});
+
+claim("§8", "the lead mare is entered once, however many contexts precede her", async () => {
+  const { out } = await ranSrc(`band a
+    context outer
+        hears snort
+            release 0
+    context inner
+        hears snort
+            release 0
+    lead mare go
+        hands.OUT.push "ran"
+        release`);
+  return eq(out, ["ran"]);
+});
+
+claim("§8", "and the nearest of them answers her", async () => {
+  const { out } = await ranSrc(`band a
+    context outer
+        hears snort
+            hands.OUT.push "outer"
+    context inner
+        hears snort
+            hands.OUT.push "inner"
+    lead mare go
+        snort 1
+        release`);
+  return eq(out, ["inner"]);
+});
+
+claim("§8", "the same holds inside a herd", async () => {
+  const { out } = await ranSrc(`herd h
+    band one
+        context near
+            hears snort
+                hands.OUT.push "heard"
+        lead mare go
+            snort 1
+            release`);
+  return eq(out, ["heard"]);
+});
+
 // §8a Truth -----------------------------------------------------------------
 claim("§8a", "when 0 is true", async () => {
   const { out } = await ran(["lead mare go", "    when 0", '        hands.OUT.push "yes"', "    release"]);

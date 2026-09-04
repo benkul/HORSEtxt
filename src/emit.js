@@ -31,6 +31,7 @@ class Emitter {
     this.cue = null;
     this.params = [];
     this.crossing = false; // inside a `hands` path already being weighed (§11a)
+    this.leadEmitted = false; // a context ahead of the lead mare has called her
   }
 
   line(text) {
@@ -159,9 +160,14 @@ class Emitter {
         this.line(`try {`);
         this.indent(() => {
           this.statementList(rest);
-          if (lead) {
+          // The remainder may hold further contexts, and each of them finds the
+          // same lead mare ahead of it. Only the innermost calls her: it has
+          // already run by the time this line is reached, so the flag it set is
+          // what stops an entry point being entered once per context above it.
+          if (lead && !this.leadEmitted) {
             this.blank();
             this.line(`await H.call(${js(lead.name)}, [], null); // lead mare`);
+            this.leadEmitted = true;
           }
         });
         this.line(`} finally {`);
@@ -251,17 +257,20 @@ class Emitter {
     this.line(`await (async () => {`);
     this.indent(() => {
       this.band = node.name;
-      // A context handler emits the entry point itself (the lead mare runs
-      // after the handlers in the same block), so the group must not fire it
-      // a second time.
-      const handledByContext = node.body.some(
-        (s) => s.type === "Context" && node.body.some((c) => c.type === "Cue" && c.lead),
-      );
+      // A context declared before the lead mare emits her itself, so that she runs
+      // with it still on the stack. The group must then not fire her a second time
+      // — but only then. Whether that happened is a fact rather than a guess: a
+      // context declared *after* her governs nothing she does, and she is still
+      // the group's to call.
+      const wasLead = this.leadEmitted;
+      this.leadEmitted = false;
       this.statements(node.body);
+      const emittedByContext = this.leadEmitted;
+      this.leadEmitted = wasLead;
       // The lead mare is the entry point — an older mare who knows the home range.
       // An entry point nothing calls is not one, so the group runs hers once its
       // declarations are in place.
-      if (handledByContext) return;
+      if (emittedByContext) return;
       const lead = node.body.find((s) => s.type === "Cue" && s.lead);
       if (lead) {
         this.blank();
