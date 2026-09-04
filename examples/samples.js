@@ -111,9 +111,22 @@ band looking
 
     lead mare speak
         remember call as ~0.8:~-0.3
-        # arousal and valence are independent and do not reduce to one pitch.
-        # asking for a single magnitude is a type error.
-        release call.arousal`,
+        remember answer as ~0.1:~0.4
+
+        # two affects combine component-wise and the answer is still a pair.
+        remember together as call + answer
+
+        # a scalar reaches arousal and leaves valence alone: intensity scales,
+        # sign does not.
+        remember louder as call * 2
+
+        # arousal is the axis with an order, so a comparison reads it.
+        when louder > answer
+            ^ ears forward   voice ~0.9:~-0.3 ^
+
+        # naming an axis is how one number comes out of a pair, and the only
+        # way. asking for a single magnitude any other way is a type error.
+        release together.valence`,
 
   "halting a held gait": `band held
 

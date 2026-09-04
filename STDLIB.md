@@ -67,8 +67,12 @@ nothing is stored — private-mode storage failure is expected, not exceptional.
 
 ## Affect
 
-`~a:~v` responds to `arousal` and `valence` (§9). Nothing else. Every other operation is
-the arithmetic rules in §9, and collapsing to one scalar is a type error.
+`~a:~v` responds to `arousal` and `valence` (§9). Nothing else.
+
+Arithmetic is the rules in §9: two affects combine component-wise and stay a pair, a
+scalar reaches arousal and leaves valence alone, and a comparison reads arousal.
+Collapsing to one scalar — joining an affect to text, or handing it to JavaScript
+arithmetic — is a type error.
 
 ## Numbers, text, truth
 
@@ -99,6 +103,11 @@ remember name as grass in [stored "unnamed"]
 `duration` (`10s`, `900ms`) and `distance` (`20px`, `50%`) are distinct primitive types,
 not numbers with suffixes. They do not mix with each other or with bare numbers, and
 `stand 10s within 20px` type-checks because the two positions want different types.
+
+**No arithmetic produces either one.** A sum where a duration or distance belongs is a
+compile error, and a bare number in that position is refused at runtime as well — so
+`every 5` and `every (2 + 3)` are both refused rather than one of them meaning five
+milliseconds.
 
 ## Reaching into JavaScript
 

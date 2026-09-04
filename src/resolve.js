@@ -694,13 +694,17 @@ class Resolver {
   // Durations and distances are distinct primitive types, not numbers with
   // suffixes (STDLIB.md). The grammar accepts any expression in these positions;
   // this is where a literal of the wrong kind is caught.
+  // Arithmetic never produces a duration or a distance: they are types rather than
+  // numbers with suffixes, and nothing combines them into one. So a sum in either
+  // position is refusable here, not only a bare literal — otherwise `every 5` is
+  // refused while `every (2 + 3)` means five milliseconds.
   wantDuration(node, where) {
-    if (node.type === "Distance" || node.type === "Number") {
+    if (node.type === "Distance" || node.type === "Number" || node.type === "Binary") {
       this.fail(node, `${where} needs a duration, like 10s or 900ms`, "STDLIB.md");
     }
   }
   wantDistance(node, where) {
-    if (node.type === "Duration" || node.type === "Number") {
+    if (node.type === "Duration" || node.type === "Number" || node.type === "Binary") {
       this.fail(node, `${where} needs a distance, like 20px`, "STDLIB.md");
     }
   }

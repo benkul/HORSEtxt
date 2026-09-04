@@ -1,5 +1,9 @@
 # HORSEtxt — Grammar
 
+Every testable claim below is executed by `test/claims.test.js`, one test per sentence.
+If this file and the language disagree, that is a failing test rather than a matter of
+opinion.
+
 Register: **prose for keywords, terse for expressions.** Indentation-delimited blocks.
 Lowercase. Minimal punctuation. ASCII only — see §1.1.
 
@@ -292,7 +296,25 @@ A zero-argument call is the one place the language requires parentheses.
 diagnostic, because late release punishes the correct response rather than merely being
 slow. Default budget 1s; the documented expected latency for a deliberate choice is ~4s.
 Under a declared individual, repeated late release degrades the binding toward learned
-helplessness, which retrying cannot repair.
+helplessness, which retrying cannot repair. **A degraded cue stops answering**: its body
+does not run and it comes back **bare**, so `when` on its answer is false (§8a). Bare
+rather than refused — a `balk` is an answer, and helplessness is the absence of one.
+
+The count is **cumulative and does not reset on a prompt release**. That is the whole of
+what "retrying cannot repair" means: the animal has learned that its behaviour does not
+control the outcome, and restoring the contingency does not un-teach it. A counter that
+reset would be modelling ordinary extinction instead.
+
+The crossing is said once, when it happens. After it the cue is **silent**, and that
+silence is the thing being modelled rather than a gap in the reporting — §11a is built
+on the observation that a horse only goes quiet at the far end of the progression.
+
+**Without a declared individual none of this exists.** Degradation is a history, and with
+no animal to carry one there is nobody for it to happen to (§2). The contract is still
+reported; only the consequence is absent.
+
+Time the animal was told to take does not count, per the paragraph below, so a cue that
+spends its time standing or between strides never degrades.
 
 **The budget measures latency, not wall time.** Time spent standing, or between the
 strides of a gait, is the animal taking the time it was told to take — it answered
@@ -480,13 +502,22 @@ mouthful, progressing rather than depleting one spot. It is the honest analogue 
 only one — gaits iterate strides.
 
 ```
-graze        = "graze" , expression , [ "as" , ident ] , newline , block ;
+graze        = "graze" , expression , [ driven ] , [ "as" , ident ] , newline , block ;
+driven       = "from" , ( "behind" | "the" , "front" ) ;
 ```
 
 ```
 graze targets as t
     develop t
+
+graze targets from the front as t
+    develop t
 ```
+
+**The direction comes before the binding**, because it belongs to the traversal rather
+than to the name. `from behind` traverses forward and `from the front` in reverse — the
+point of balance at the shoulder, where pressure behind drives an animal on and pressure
+in front drives it back (§9a). Unstated, a graze runs forward.
 
 Horses are **selective** grazers, so `graze` may skip: a `blank` in the body advances
 without acting, and is the filter.
@@ -763,13 +794,20 @@ All patches bare comes back bare, which is the honest answer and not an error.
 `~a:~v` is a pair: arousal and valence. F0 and G0 are non-harmonically related and do not
 reduce to one pitch.
 
-- **Component access:** `x.arousal`, `x.valence`.
-- **Affect and affect:** arithmetic applies component-wise.
+- **Component access:** `x.arousal`, `x.valence`. This is how one number comes out of a
+  pair, and the only way.
+- **Affect and affect:** arithmetic applies component-wise, and the answer is a pair.
 - **Affect and scalar:** applies to **arousal only**. Arousal is intensity; valence is
-  sign, and scaling a sign is meaningless.
-- **Comparison** compares arousal. Comparing valence requires naming the axis.
+  sign, and scaling a sign is meaningless — `~0.2:~-0.9 * 3` is `~0.6:~-0.9`. Either side
+  may be the scalar and the order is kept, so `1 - a` subtracts arousal from one. A graded
+  value is a plain number, so it is a scalar here.
+- **Comparison** compares arousal, the axis with an order. Comparing valence requires
+  naming the axis.
 - **Any operation yielding a single scalar from an affect is a type error.** This is the
-  rule the whole construct exists to enforce.
+  rule the whole construct exists to enforce, and it is about *collapsing* rather than
+  about arithmetic: two affects combined give a pair back and nothing has collapsed. What
+  is refused is asking for one magnitude — joining an affect to text, or handing it to
+  JavaScript arithmetic through `hands`.
 
 ---
 
@@ -838,6 +876,36 @@ of the stimulus** — habituation is stimulus-specific, and a rotated familiar o
 as novel again, so changing an error's shape resets the count.
 
 `flood` compiles with a warning: flooding produces learned helplessness.
+
+**`shy` is a startle.** A sudden lateral displacement away from something perceived,
+and the one construct here that **ends nothing** — not the cue, not the stride, not the
+gait, not the program. A balking horse will not go; a shying horse went, and went
+sideways on the way.
+
+What it moves is the side the animal is working from, and it hands over to the other one.
+The grounding is hemispheric rather than spatial: values have no positions in a field
+(§9a), so "away" cannot come from geometry. Startle and flight are right-hemisphere work,
+which is the left eye; what follows a startle is the animal turning to look at the thing
+properly, which is the left hemisphere and the right eye. It reads correctly in both
+directions — startled out of categorising, the flight system has it.
+
+So after a shy the ambient side is the other one, and everything that reads it answers
+differently: an unstated `flehmen` asks the other question, a chord leans the other way,
+a signal carries the other side, and a call runs under it. The same expression gives a
+different kind of answer on either side of a shy, which is the whole of what a shy does.
+
+**It takes no argument**, because the direction is not chosen — an animal does not decide
+which way to jump. What startled it is already named wherever the signal was heard.
+
+The new side lasts to the end of the enclosing cue, which is the ambient side shifting
+with the block (§9a) rather than a rule of its own.
+
+```
+context lane
+    hears novel as what
+        shy
+        ^ ears forward   eyes wide   head ~0.7   tension ~0.8 ^
+```
 
 `balk`, `leave`, and `blank` are **terminal successes, not errors**. `balk` declines this
 cue. `leave` ends the program having done nothing. `blank` answers "no change" and leaves
@@ -1117,14 +1185,20 @@ This cannot be refused, because testing that a method exists is feature detectio
 legitimate. The catchable half — a path that comes back bare, or one used as a value — is
 reported (§11a).
 
-**A duration cannot be computed.** Durations and distances do not mix with numbers
-(`STDLIB.md`). `10s + 3` is meaningless and rejecting it is right; `10s * 0.5` is
-dimensionally sound and rejected too. So **a gait's interval cannot vary at runtime** —
-an interval is a duration literal or a name holding one. A steady gait and a counter is
-how a varying wait is written.
+**A duration cannot be computed.** Durations and distances are types rather than numbers
+with suffixes, and no arithmetic produces one: `10s + 3` is meaningless, and `10s * 0.5`
+is dimensionally sound and refused too. So **a gait's interval cannot vary at runtime** —
+an interval is a duration literal or a name holding one, and a sum in that position is a
+compile error. A steady gait and a counter is how a varying wait is written.
+
+This is enforced in both places, and deliberately: refusing `every 5` while accepting
+`every (2 + 3)` as five milliseconds would make the type a matter of how the value was
+spelled.
 
 Open, rather than settled: whether a horse has any concept of a *varying* tempo, or only
-of the gait it is in.
+of the gait it is in. Tempo within a gait is characteristic and fairly stable — what a
+horse varies is stride length — so the restriction may be the honest reading rather than
+a limitation.
 
 **A value cannot be waited on.** A cue can be handed to `new hands.Promise`, so the
 language can produce a promise, and it has no way to wait on one it is holding. Awaiting

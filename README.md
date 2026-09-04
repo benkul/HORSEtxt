@@ -20,10 +20,15 @@ band gallery
 
 ## Status
 
-**v0.5.2 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
+**v0.6.0 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
 emitter, runtime, browser loader, host, CLI, and a playground.
 
 `GRAMMAR.md` is the specification; §12 there is what the language does not do.
+
+**The documents are checked.** `test/claims.test.js` executes every testable claim the
+docs make — one test per sentence, named for the claim and the section it comes from. A
+failure reads as the sentence that is no longer true. Prose is not checked by anything
+else, and claims here have been wrong for whole releases at a time.
 
 ```
 npm test      # lexer, parser, resolver, emitter, loader

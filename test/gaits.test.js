@@ -217,7 +217,7 @@ T("a cue is not late for time spent between strides", async () => {
   H.releaseBudget = 60;
   const held = H.cue("held", [], async () => {
     let strides = 0;
-    await H.gait("walk", [async () => { if (++strides >= 4) H.halt(); }], { interval: 30 });
+    await H.gait("walk", [async () => { if (++strides >= 4) H.halt(); }], { interval: { value: 30, unit: "ms" } });
   });
   await held();
   eq(H.diagnostics, [], "four 30ms intervals are not a late release");
