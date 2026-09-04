@@ -393,7 +393,7 @@ T("a context before the lead mare reaches the lead call in the same scope", asyn
   // that scope and is where the block's signals are raised. The emitted lead
   // call has to be a sibling of the declarations, not nested in the try, or
   // the hoisted `let` is still undefined when the entry point runs — the
-  // debugger's own example tripped on this.
+  // dewormer's own example tripped on this.
   const src = [
     "band a",
     "    context field",

@@ -1,6 +1,6 @@
 // node test/horse.test.js
 //
-// The horse itself, drawn. The debugger's second act: the flame graph is the
+// The horse itself, drawn. The dewormer's second act: the flame graph is the
 // skeleton, and this module gives it the animal — a real horse, drawn in SVG,
 // that embodies the exact runtime state the trace reads. This suite watches
 // the pure posture descriptor (`postureState`) and the SVG vnode tree
@@ -21,7 +21,7 @@
 //     at the relaxed/dozing end; tail carriage/swishing is agitation; tension
 //     is the reinforcement spine (Applied Animal Behaviour Science 2025).
 //
-// DOM-lite on purpose, like src/debugger.js: nothing here needs a document.
+// DOM-lite on purpose, like src/dewormer.js: nothing here needs a document.
 
 import { HorseView, postureState, readChannels, renderHorse, svgEl } from "../src/horse.js";
 

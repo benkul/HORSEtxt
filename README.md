@@ -20,12 +20,12 @@ band gallery
 
 ## Status
 
-**v0.6.0 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
+**v0.6.1 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
 emitter, runtime, browser loader, host, CLI, and a playground.
 
 `GRAMMAR.md` is the specification; §12 there is what the language does not do.
 
-**The horse is watchable while it runs.** `src/debugger.js` renders every emission as a
+**The horse is watchable while it runs.** `src/dewormer.js` renders every emission as a
 frame — its locus and the answer it got, including the two silences — and `src/horse.js`
 stands a drawn horse beside it reading the same stream. Ears, head, nostrils, lids, tail
 and tension all trace to the bibliography, and an agonistic animal dims and retreats
@@ -114,7 +114,7 @@ emission, not with a source map.
 
 Beyond that, the parts of the design still ahead of the implementation:
 
-- **A debugger panel that steps.** The trace and the drawn horse exist and are live in
+- **A dewormer panel that steps.** The trace and the drawn horse exist and are live in
   the playground (§14); what is missing is a standalone panel that can hold a program
   still and walk it.
 - **History as semantics.** Trials-to-criterion training, so a newly defined cue is not

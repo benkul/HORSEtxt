@@ -1,10 +1,10 @@
-# HorseText Debugger — working notes
+# HorseText Dewormer — working notes
 
 Date: 2026-09-01. Sessions 1-2.
 Date: 2026-09-02. Session 3 — the drawn horse.
 
 ## Mission
-Build the visual debugger for HorseText: a flame-graph / waterfall trace of
+Build the visual dewormer for HorseText: a flame-graph / waterfall trace of
 the horse's state, where ears and head position change what you see because
 they change what the horse attends to. Unhinged in HorseText's own way, not
 decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
@@ -21,10 +21,10 @@ decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
 - `src/emit.js` — provenance compiled into emitted JS (`line: N`, sourceURL).
 - `playground.html` — already has a live `<script type="text/horse">` block,
   an editor, compiled-JS view, and a flat lists of utterances/signals. The
-  debugger is the NEXT panel on top of the SAME onSignal stream.
+  dewormer is the NEXT panel on top of the SAME onSignal stream.
 
 ## What was built (session 2)
-1. `src/debugger.js` — ES module, DOM-lite. Consumes `onSignal(name, answer)`
+1. `src/dewormer.js` — ES module, DOM-lite. Consumes `onSignal(name, answer)`
    events; renders a waterfall: each emission = a frame labelled with locus
    (line, band/cue) and the answer it got. Frame tree is pure:
    `render(trace, opts)` -> vnode; the page turns it into real DOM.
@@ -41,9 +41,9 @@ decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
    legend; `postureOf()` reads the literal channel truth from the runtime's
    `{ ears, states }` (the runtime's `p.ears` reduces
    `_ ears back _` to `agonistic`, so ears come from the states — a real bug
-   the debugger found). Anchor-vs-utterance tracking hands `accept()` the
+   the dewormer found). Anchor-vs-utterance tracking hands `accept()` the
    exact posture in force when a signal fired.
-4. `test/debugger.test.js` — 18 tests in `npm test`.
+4. `test/dewormer.test.js` — 18 tests in `npm test`.
 5. `examples/trace.horse` (+ "the trace" sample in samples.js) — one paddock
    walking all four states; compiles and runs clean.
 6. GRAMMAR.md §12n, README "Not built yet" entry.
@@ -57,13 +57,13 @@ decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
   Regression test in `test/emit.test.js`.
 - **`p.ears` is a reduction, not the truth** — `_ ears back _` reports
   `p.ears === "agonistic"` while the channel state is `{state:"back"}`; the
-  debugger must read ears from the states. The trace's whole point is the
+  dewormer must read ears from the states. The trace's whole point is the
   literal channel state the horse struck.
 - **Anchor chords** — after most utterances the runtime emits a default
   ears-forward chord, so `onChord` fires twice per utterance; `accept()`
   must receive the *struck* posture, not the anchor that follows.
-- **npm test omitted debugger.test.js** — the script listed 11 suites,
-  missing debugger (18 tests). Fixed by adding both debugger and the new
+- **npm test omitted dewormer.test.js** — the script listed 11 suites,
+  missing the dewormer (18 tests). Fixed by adding both dewormer and the new
   horse suite to `npm test` in package.json (session 3).
 
 ## What was built (session 3) — the drawn horse
@@ -115,9 +115,9 @@ decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
   so `querySelectorAll('.fork')` returned 0 and CSS couldn't target it.
   Fixed: `el()` now also reads top-level `node.cls` when `attrs.cls` is
   absent.
-- **npm test script omitted debugger.test.js** (session 2 gap): the script
-  listed 11 suites; debugger (18 tests) was not included, so `npm test`
-  never ran them. Added debugger + horse suites to the script.
+- **npm test script omitted dewormer.test.js** (session 2 gap): the script
+  listed 11 suites; the dewormer (18 tests) was not included, so `npm test`
+  never ran them. Added dewormer + horse suites to the script.
 - **trace.horse non-ASCII `—` in comments** (moods.horse, session 3):
   browser.test.js compiles every .horse file; the lexer rejects non-ASCII
   `—` in comments. Fixed: rewrote to ASCII hyphens.
@@ -132,7 +132,7 @@ decoration — every ear/head effect traceable to BIBLIOGRAPHY.md and GRAMMAR.md
 - [x] playground.html panel (horse + trace + live stream)
 - [x] el() fork class bug fixed
 - [x] test/horse.test.js (23 tests)
-- [x] npm test wired: debugger + horse suites now run
+- [x] npm test wired: dewormer + horse suites now run
 - [x] npm test + npm run check green (13 suites, 382 tests)
 - [x] examples/moods.horse + samples.js "the moods"
 - [x] GRAMMAR.md §12n.1 + README updated

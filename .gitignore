@@ -1,4 +1,4 @@
-# local debugger screenshot harness (playwright venv + raw captures).
+# local dewormer screenshot harness (playwright venv + raw captures).
 # the shipped screenshots live in docs/trace/ and docs/horse/ as webp.
 .shots/
 .venv/

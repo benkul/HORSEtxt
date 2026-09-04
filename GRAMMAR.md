@@ -31,7 +31,7 @@ A consequence worth stating, because it is easy to reach for by reflex: **the to
 not explain.** Errors cite. There is no resolver that hands you the meaning of a token in
 context — that would convert foreign into annotated, and the difficulty is the point.
 
-**Observing is not explaining**, and the debugger (§14) is the case that settles it. It
+**Observing is not explaining**, and the dewormer (§14) is the case that settles it. It
 reports what the animal did and what state it was in; it does not say what any of it
 means. It also inherits the animal's opacity rather than working around it: an agonistic
 horse is not attending, so the trace dims and retreats too. A tool that showed more than
@@ -1252,9 +1252,9 @@ so work that happens somewhere else belongs there and nowhere else.
 Cost: a second compilation target, an isolate boundary, and a new meaning for `hands`. Not
 to be built without a measurement showing main-thread CPU is the bottleneck.
 
-## 14. The debugger
+## 14. The dewormer
 
-The debugger is the inner life that View Source hides. The runtime reports every
+The dewormer is the inner life that View Source hides. The runtime reports every
 emission through `host.onSignal(name, answer)`, and every answer carries provenance —
 line, band, cue, individual, side. A flat list cannot show what the horse was attending
 to *when*. The trace does: each emission is a frame, labelled with its locus and the
@@ -1282,15 +1282,15 @@ attends to:
   left (§9a). The fork gives the real answer to the attending side and the guarded
   silence to the other, and the provenance's `side` says which eye asked.
 
-The debugger keeps *every* posture, because the runtime keeps only the latest —
+The dewormer keeps *every* posture, because the runtime keeps only the latest —
 `attending` is a flag a signal checks at the moment it is emitted, and the flag does not
 say which posture set it. Two signals in a row can carry the same provenance while being
 attended to differently, because the animal's ears moved between them. The trace is the
 only place that becomes visible. It is a listener, the way a human watching the paddock
 is a listener; the paddock remembers what it saw.
 
-Where to look: `src/debugger.js` (DOM-lite renderer — pure function from events and
-posture to a frame tree), `test/debugger.test.js`, and `examples/trace.horse` (one
+Where to look: `src/dewormer.js` (DOM-lite renderer — pure function from events and
+posture to a frame tree), `test/dewormer.test.js`, and `examples/trace.horse` (one
 paddock walking all four states). `playground.html` wires it beside the flat report.
 Renders, captured from the live playground (`docs/trace/`): the trace under the horse's
 own attention, the agonistic retreat, and the divided fork.
@@ -1330,7 +1330,7 @@ that cannot be cited is decoration, and decoration is a bug:
   in runtime.js) and tightens the neck and darkens the body.
 
 The drawn horse also visibly attends: when a signal lands it flares a nostril and
-flicks an ear, then the posture holds. The debugging flow and the animal are the same
+flicks an ear, then the posture holds. The deworming and the animal are the same
 thing — you read the program by reading the horse. Grotesque where the state is
 grotesque, still where the horse is content.
 

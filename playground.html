@@ -233,7 +233,7 @@ band welcome
 <script type="module">
 import { compile, runSource, browserHost, blocks } from "./src/browser.js";
 import { SAMPLES } from "./examples/samples.js";
-import { Trace, accept, begin, finish, render } from "./src/debugger.js";
+import { Trace, accept, begin, finish, render } from "./src/dewormer.js";
 import { HorseView, renderHorse } from "./src/horse.js";
 
 const $ = (id) => document.getElementById(id);
@@ -274,7 +274,7 @@ const log = [];
 function say(line) { log.push(line); $("log").textContent = log.slice(-40).join("\n"); }
 
 // -- the trace -------------------------------------------------------------------
-// The debugger keeps *every* posture, because the runtime keeps only the latest:
+// The dewormer keeps *every* posture, because the runtime keeps only the latest:
 // `attending` is a flag a signal checks at the moment it is emitted, and the
 // flag does not say which posture set it. Two signals in a row can carry the
 // same provenance while being attended to differently, because the animal's
@@ -289,7 +289,7 @@ liveTrace.onFrame(() => {
 // because a chord is one utterance with simultaneous channels (§4). The
 // `ears` shorthand is the runtime's *reduced* posture: `_ ears back _` reports
 // `p.ears === "agonistic"` while the channel state is `{state:"back"}`. The
-// debugger carries the literal channel truth — the state the horse actually
+// dewormer carries the literal channel truth — the state the horse actually
 // struck — not the reduction, so ears must come from the states too.
 function postureOf(p) {
   const out = { ears: p && p.ears, head: null, states: (p && p.states) || [] };
@@ -312,7 +312,7 @@ let current = liveTrace;
 // onChord is usually not the answer — the trace keeps the *utterance*.
 let struck = postureOf({ ears: "forward", head: 0, states: [] });
 
-// A vnode is { tag, attrs, kids }; a fork is { cls, children }. The debugger
+// A vnode is { tag, attrs, kids }; a fork is { cls, children }. The dewormer
 // never builds markup — a handler's value is text, set here with textContent,
 // so what the horse answered survives verbatim.
 function el(node) {

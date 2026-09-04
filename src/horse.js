@@ -1,4 +1,4 @@
-// HORSEtxt debugger — the horse itself, drawn.
+// HORSEtxt dewormer — the horse itself, drawn.
 //
 // The flame graph is the skeleton. This module gives it the animal: a real
 // horse, drawn in the page (SVG), that embodies the exact runtime state the
@@ -34,7 +34,7 @@
 //     `tension ~held` is what binding is for (GRAMMAR.md §4). The drawing
 //     tightens the neck and darkens the body with the `/tension` channel.
 //
-// The module is DOM-lite by design, like src/debugger.js: the core is a pure
+// The module is DOM-lite by design, like src/dewormer.js: the core is a pure
 // function from posture to a numeric *posture descriptor* (the testable
 // truth), and `renderHorse` projects that descriptor into an SVG vnode tree
 // the page turns into real DOM. The tests watch the descriptor — "ears
@@ -170,7 +170,7 @@ export function postureState(posture, opts = {}) {
   const retreatX = agonistic ? 18 : 0;
 
   // A signal that just landed: the horse visibly attends — a transient
-  // nostril flare and a flick of the ears — so the debugging flow and the
+  // nostril flare and a flick of the ears — so the deworming and the
   // animal are the same thing. The pulse decays; the posture stays.
   const attendPulse = opts.signal ? Math.max(0, Math.min(1, opts.signal)) : 0;
 

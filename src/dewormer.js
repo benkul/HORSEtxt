@@ -1,4 +1,4 @@
-// HORSEtxt debugger — the horse's true state, drawn.
+// HORSEtxt dewormer — the horse's true state, drawn.
 //
 // The runtime already tells the truth: Horse#signal() calls host.onSignal(name,
 // answer) for every emission, and every answer carries provenance — line, band,
@@ -14,7 +14,7 @@
 //
 //   - Wathan & McComb 2014 (Current Biology 24(15)): ears are the visual
 //     indicator of attention. Mask the ears and the trace is unreadable; a
-//     horse whose ears are down is not attending, so the debugger retreats to
+//     horse whose ears are down is not attending, so the dewormer retreats to
 //     match. EAD103 is the agonistic ear flattener (EquiFACS, Wathan et al.
 //     2015) — the runtime says so itself: `attending = ears !== "agonistic"`.
 //   - Wathan et al. 2015 (EquiFACS, PLOS ONE 10(8)): left and right ears are
@@ -94,12 +94,12 @@ export class Trace {
 // A chord is one utterance, and its ears are attention (GRAMMAR.md §4). The
 // runtime keeps only the *latest* posture — `attending` is a flag, and a
 // signal checks the flag at the moment it is emitted, not the posture that set
-// it. So the debugger must do what the runtime will not: keep every posture,
+// it. So the dewormer must do what the runtime will not: keep every posture,
 // in order, and attribute each signal to the one that was in force when the
 // signal fired. Two signals in a row can carry the same `carried` while being
 // attended to differently, because the animal's ears moved between them.
 //
-// The debugger violates nothing by doing this: it is a *listener*, the way a
+// The dewormer violates nothing by doing this: it is a *listener*, the way a
 // human watching the paddock is a listener, and the paddock remembers what it
 // saw.
 
@@ -107,7 +107,7 @@ export class Trace {
 // ~-1..~1 head channel. Absent, it defaults to the last one: a head that was
 // not re-uttered is still held. "Relaxed" is the zero of the channel, which
 // is exactly what the range's centre means.
-// head is a signed tissue fraction, exactly what the chord channel carries — see test/debugger.test.js P.
+// head is a signed tissue fraction, exactly what the chord channel carries — see test/dewormer.test.js P.
 export function headOf(p) {
   const h = p && p.head;
   if (h == null) return null;

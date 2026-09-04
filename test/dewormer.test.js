@@ -1,6 +1,6 @@
-// node test/debugger.test.js
+// node test/dewormer.test.js
 //
-// The debugger's truth, watched. The runtime reports every emission through
+// The dewormer's truth, watched. The runtime reports every emission through
 // onSignal(name, answer) with provenance (line, band, cue, individual, side),
 // and a chord is an utterance whose ears are attention (GRAMMAR.md §4). This
 // suite feeds a synthetic stream — postures and signals in the order the
@@ -13,7 +13,7 @@
 
 import {
   accept, begin, finish, fmt, fork, headOf, render, row, Trace, v,
-} from "../src/debugger.js";
+} from "../src/dewormer.js";
 
 let pass = 0;
 const failures = [];
