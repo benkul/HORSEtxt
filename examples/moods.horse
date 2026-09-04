@@ -1,0 +1,74 @@
+# the worked example for the drawn horse - the debugger's second act.
+#
+# the trace is the skeleton; this is the animal. every state the horse panel
+# embodies arrives here as a chord, and each one is cited, because a pose
+# that cannot be cited is decoration, and decoration is a bug.
+#
+#   ^ ears forward   head ~0    lids AU143 ^       contented - lids droop is
+#                                                 the relaxed/dozing end of
+#                                                 the ethogram (Lewis et al.
+#                                                 2025; lids coded in EquiFACS)
+#   _ ears back _                                 agonistic (EAD103, EquiFACS)
+#                                                 - not attending, so the
+#                                                 drawn horse dims + retreats
+#   ^ ears divided   head ~-0.3 _                 divided - one ear each way
+#                                                 (EAD103L / EAD103R); the two
+#                                                 eyes look different ways
+#                                                 (laterality, GRAMMAR.md 12g)
+#   ^ ears forward   head ~0.85 ^                 head high - the horse rears
+#                                                 (head height is part of the
+#                                                 attention display, Wathan &
+#                                                 McComb 2014)
+#   ^ ears forward   head ~-0.9 ^                 head low - the horse sinks
+#   ^ ears forward   nostrils AD38   tail ~-0.7 ^  flared nostrils + low tail:
+#                                                 arousal display (ethogram)
+#   ^ ears forward   tension ~0.8   tail ~0.6 ^    tense, tail raised: the
+#                                                 reinforcement spine (applied
+#                                                 animal behaviour science
+#                                                 2025) and a raised carriage
+#
+# run it in the playground and watch the horse: it stands contented, flattens
+# and vanishes into the corner, splits its attention, rears, sinks, flares,
+# and braces - and the trace beside it tells the same story in frames.
+#
+# the debugger cites: Wathan & McComb 2014, Wathan et al. 2015 EquiFACS,
+# Lewis et al. 2025 ethogram, GRAMMAR.md 4 and 12g.
+
+@ storm  12  right bias
+
+band moods
+
+    context field
+        hears snort
+            ^ ears forward   nostrils AD38   tension ~0.1 ^
+            release 1
+
+    lead mare show
+        # 1 - contented. relaxed head, drooping lids.
+        ^ ears forward   head ~0   lids AU143 ^
+        snort
+
+        # 2 - both ears flattened. agonistic (EAD103). not attending.
+        _ ears back _
+        snort
+
+        # 3 - divided attention: one ear forward, one back.
+        ^ ears divided   head ~-0.3 _
+        snort
+
+        # 4 - head high: the horse rears.
+        ^ ears forward   head ~0.85 ^
+        snort
+
+        # 5 - head low: the horse sinks.
+        ^ ears forward   head ~-0.9 ^
+        snort
+
+        # 6 - arousal: flared nostrils, low tail.
+        ^ ears forward   nostrils AD38   tail ~-0.7 ^
+        snort
+
+        # 7 - tense, tail raised.
+        ^ ears forward   tension ~0.8   tail ~0.6 ^
+        snort
+        release

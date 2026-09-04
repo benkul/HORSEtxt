@@ -388,6 +388,32 @@ T("the emitter injects provenance at every emission", async () => {
   ok(/band: "g"/.test(code) && /cue: "draw"/.test(code), `provenance missing:\n${code}`);
 });
 
+T("a context before the lead mare reaches the lead call in the same scope", async () => {
+  // The context governs the rest of its block; the lead mare is declared in
+  // that scope and is where the block's signals are raised. The emitted lead
+  // call has to be a sibling of the declarations, not nested in the try, or
+  // the hoisted `let` is still undefined when the entry point runs — the
+  // debugger's own example tripped on this.
+  const src = [
+    "band a",
+    "    context field",
+    "        hears snort",
+    "            ^ ears forward ^",
+    "    lead mare go",
+    "        snort",
+    "        release",
+    "",
+  ].join("\n");
+  const code = compile(src);
+  ok(/pushContext\("field"/.test(code), `context emitted:\n${code}`);
+  ok(!/await H\.call\(go, \[\], null\); \/\/ lead mare[^]*await H\.call\(go/.test(code),
+    `lead call emitted once:\n${code}`);
+  const heard = [];
+  const r = await exec(src, { onSignal: (n, a) => heard.push([n, a.answered, a.by]) });
+  ok(!r.threw, `threw: ${r.threw && r.threw.message}`);
+  eq(heard, [["snort", true, "field"]], "the lead's signal lands in the context");
+});
+
 // --------------------------------------------------------------------- chords
 
 T("both ears forward means attending", async () => {

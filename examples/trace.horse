@@ -1,0 +1,53 @@
+# the worked example for the debugger.
+#
+# each of the four ear/head states the trace renders, in one paddock:
+#
+#   ^ ears forward   head ~0.2 ^   attending, head relaxed  -> every frame sharp
+#   _ ears back _                 agonistic (EAD103)        -> the trace retreats
+#   ^ ears forward   head ~0.8 ^   attending, head high     -> frames float
+#   ^ ears divided   head ~-0.3 _   divided attention       -> the fork splits
+#
+# the same snort keeps being emitted, and the animal attends to it differently
+# each time. the signal is one thing; what the horse does with it is another.
+#
+# run it in the playground and watch the trace: echoed (sharp), unanswered
+# "not attending" (blurred, retreated), echoed again (sharp, floating), and
+# under a divided posture with no handler answering that side, a fork with
+# two silences: the left eye reads novelty, the right eye reads category, and
+# neither side is listening for a snort.
+#
+# the debugger cites: Wathan & McComb 2014 (ears are attention), Wathan et al.
+# 2015 EquiFACS (EAD103, ears independent), Lewis et al. 2025 (agonistic
+# context), and GRAMMAR.md 4/12g for the laterality of the fork.
+
+@ trail  8  left bias
+
+band trace
+
+    # hear everything first; the context wraps the rest of the band, so the
+    # lead mare's signals land in it (GRAMMAR.md 8).
+    context field
+        hears snort
+            ^ ears forward   nostrils AD38   tension ~0.1 ^
+            release 1
+
+    lead mare show
+        # 1 - attending. answered, sharp, head ~0.2.
+        ^ ears forward   head ~0.2 ^
+        snort
+
+        # 2 - both ears flattened. agonistic. not attending.
+        # the handler exists but the horse is not there for it.
+        _ ears back _
+        snort
+
+        # 3 - attending again, head high: frames float.
+        ^ ears forward   head ~0.8 ^
+        snort
+
+        # 4 - one ear forward, one back: divided attention.
+        # the trace forks: left eye reads novelty, right eye reads category.
+        # the handler is still there, but the horse is only half there.
+        ^ ears divided   head ~-0.3 _
+        snort
+        release

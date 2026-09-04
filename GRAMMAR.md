@@ -1169,6 +1169,150 @@ describes is not information about the thing.
 
 ---
 
+| Gap | Problem | Resolution |
+|---|---|---|
+| **Pressure with no release** | A member path alone on a line reads the method and discards it. `channel.play` is silent and does nothing; `(channel.play)` calls it. Three instances in the first sketch of a fourth port, written by someone who knew about the trap | An error, §11a. The release is the information; a signal with no release is not a signal |
+| **Opposing signals** | A cue is async, so JavaScript gets a promise. Right for a listener, which discards it; wrong for `sort` or `filter`, which coerce it — a promise is truthy, so nothing is filtered and nothing is sorted, with no error | Refused for a named list of receivers, §11a. Rein and leg together is the canonical welfare fault, and this is its shape |
+| **`leave` escaped the page** | A cue handed to the page and called back into after the program ended threw `Leave` into an event handler as an uncaught error, taking the rest of that dispatch with it | Contained and noted. An answer has to be given *to* someone; one with no listener says something about the listener |
+| **A handler could not name what arrived** | §13 item 22. The emitter has passed the carried value since v0.1 and `hears` had no binding form, so a handler knew a signal had arrived and not what it brought | `hears snort as what`. The binding belongs to that handler: two handlers are two interpretations |
+
+The half not built is the interesting half — counting crossings that come back bare, and
+reporting at N. That is what would give the boundary weight rather than an alarm, and it
+is a contact rather than a switch. §11a records why it waits.
+
+## 12n. The horse's true state — the debugger, v0.5
+
+The debugger is the inner life that View Source hides. The runtime reports every
+emission through `host.onSignal(name, answer)`, and every answer carries provenance —
+line, band, cue, individual, side. A flat list cannot show what the horse was attending
+to *when*. The trace does: each emission is a frame, labelled with its locus and the
+answer it got — answered by which context, refused, or one of the two silences.
+
+The two silences are real, and different:
+
+| Silence | Meaning | Shown as |
+|---|---|---|
+| `unanswered (nobody there)` | no context had a handler for the signal | a frame with the reason `nobody there` |
+| `unanswered (not attending)` | a handler exists, but the ears were flattened | a retreated, blurred frame — the horse is not there for it |
+
+Ears and head position change what you see as directly as they change what the horse
+attends to:
+
+- **ears forward, head relaxed** — every frame sharp, in order.
+- **ears flattened (agonistic)** — the trace dims, blurs, retreats. The horse is not
+  attending, so neither should you; EAD103 is the agonistic ear flattener (EquiFACS,
+  Wathan et al. 2015) and the runtime's own `attending` flag reads it that way (§4).
+- **head high** — frames float; **head low** — frames sink. The head height is part of
+  the attention display (Wathan & McComb 2014) and the trace carries it literally.
+- **one ear forward, one back (divided)** — the trace forks into two tracks, `left eye`
+  and `right eye`. Ears are coded independently (EAD103L / EAD103R, EquiFACS), and the
+  hemispheres do different work: novelty/threat on the right, categorisation on the
+  left (§12g). The fork gives the real answer to the attending side and the guarded
+  silence to the other, and the provenance's `side` says which eye asked.
+
+The debugger keeps *every* posture, because the runtime keeps only the latest —
+`attending` is a flag a signal checks at the moment it is emitted, and the flag does not
+say which posture set it. Two signals in a row can carry the same provenance while being
+attended to differently, because the animal's ears moved between them. The trace is the
+only place that becomes visible. It is a listener, the way a human watching the paddock
+is a listener; the paddock remembers what it saw.
+
+Where to look: `src/debugger.js` (DOM-lite renderer — pure function from events and
+posture to a frame tree), `test/debugger.test.js`, and `examples/trace.horse` (one
+paddock walking all four states). `playground.html` wires it beside the flat report.
+Renders, captured from the live playground (`docs/trace/`): the trace under the horse's
+own attention, the agonistic retreat, and the divided fork.
+
+| State | Render |
+|---|---|
+| the trace, horse's own attention | ![trace-normal](docs/trace/trace-normal.webp) |
+| ears flattened (agonistic) — the trace retreats | ![trace-agonistic](docs/trace/trace-agonistic.webp) |
+| one ear forward, one back — the fork | ![trace-divided-fork](docs/trace/trace-divided-fork.webp) |
+
+### 12n.1 The horse itself, drawn — v0.6
+
+The flame graph is the skeleton. The debugger now gives it the animal: a real horse,
+drawn in the page (SVG), standing beside the trace and reading the same stream. It is
+not a mascot — it is state. Watch the horse and you are watching the program.
+
+Every posture the panel embodies traces to the same citations as the trace, and a pose
+that cannot be cited is decoration, and decoration is a bug:
+
+- **Ears are attention** — EAD101 forward is attention, EAD103 is the agonistic ear
+  flattener (EquiFACS, Wathan et al. 2015), and the runtime's own `attending` flag says
+  an agonistic animal is *not attending* (§4). So the drawn horse flattens both ears
+  and its whole body dims and retreats — you cannot read what the horse is not
+  attending to.
+- **Ears aim independently** — EAD103L / EAD103R are coded separately (EquiFACS), and a
+  horse rotates its ears 180deg on ten muscles (Wathan & McComb 2014). A divided chord
+  draws one ear forward and one back, and the two eyes look different ways, because the
+  hemispheres do different work — novelty/threat on the right, categorisation on the
+  left (§12g).
+- **Head height is part of the attention display** (Wathan & McComb 2014). The head
+  channel is a signed tissue fraction; the drawing carries it literally — a high head
+  lifts, and past a threshold the horse rears; a low head sinks.
+- **Nostrils flare with arousal** (ethogram, Lewis et al. 2025); **lids droop** at the
+  relaxed/dozing end (EquiFACS eyelid AUs); **tail carriage and swishing** are
+  agitation displays (ethogram; weather `flies` is the largest behavioural driver);
+  **tension** is the reinforcement spine (Applied Animal Behaviour Science 2025, cited
+  in runtime.js) and tightens the neck and darkens the body.
+
+The drawn horse also visibly attends: when a signal lands it flares a nostril and
+flicks an ear, then the posture holds. The debugging flow and the animal are the same
+thing — you read the program by reading the horse. Grotesque where the state is
+grotesque, still where the horse is content.
+
+Where to look: `src/horse.js` (`postureState` is the pure posture descriptor — the
+testable truth; `renderHorse` projects it into an SVG vnode tree), `test/horse.test.js`,
+and `examples/moods.horse` (the same paddock walking all the body states).
+`playground.html` draws it beside the trace. Renders, captured from the live playground
+(`docs/horse/`):
+
+| State | Render |
+|---|---|
+| contented — ears forward, head relaxed | ![horse-contented](docs/horse/horse-contented.webp) |
+| agonistic / retreated — ears flattened, not attending | ![horse-agonistic](docs/horse/horse-agonistic.webp) |
+| divided attention — one ear each way, eyes split | ![horse-divided](docs/horse/horse-divided.webp) |
+| head high — the horse rears | ![horse-rearing](docs/horse/horse-rearing.webp) |
+| head low — the horse sinks | ![horse-sunken](docs/horse/horse-sunken.webp) |
+
+
+## 13. Still open
+
+17. ~~**The standard library.**~~ Closed — see `STDLIB.md`. Deliberately small; grows only
+    when a *second* program needs a member.
+19. ~~**The `genotype` tax.**~~ Closed in draft 6, as a real fault rather than a tax.
+22. ~~**A `hears` handler cannot name the value it receives.**~~ Closed in v0.4 —
+    `hears creak as v`, §8.
+24. ~~**Nothing abandons one attempt and keeps the gait.**~~ Closed in v0.3 — `stumble`,
+    §5a. A horse that puts a hoof down badly does not stop walking.
+23. **Members are unresolvable, by nature.** `x.foo` is never checked, so a typo in a
+    member name survives to runtime. That is the price of `hands` being a flat boundary
+    onto JavaScript, and it is probably the right price.
+18. **The voice channels went unused.** Across three ported programs `whinny` and `nicker`
+    never appeared, and `snort`/`squeal` only inside a `context` that assigned their
+    meaning locally. Evidence that voice is a smaller part of the language than the design
+    assumed. Watch it; don't act yet.
+20. **Welfare's observable surface.** Welfare gates capability, but nothing says how a
+    program reads its own welfare, or whether it may. Deferred to v0.3, where welfare
+    lands.
+21. **`graze` over `forage`.** `deck.graze` (draw one) and `graze deck as x` (traverse
+    all) use the same word for a single draw and a full traversal. Defensible — both are
+    grazing — but a reader will trip. Watch.
+25. **The boundary has no weight yet.** §11a catches the two failures a compiler can see
+    and nothing counts crossings that come back bare. A contact is felt continuously and
+    a switch is not, and this is still a switch. Wants per-path counting at the emit site,
+    reusing the structural hash `habituates after N` already keys on. See §11a.
+26. **Cues are not first-class within the language.** `remember f as answer` then `(f)`
+    reports "f is not a cue", so a dispatch table is inexpressible and every branch has to
+    be written out. A cue can be handed *out* to JavaScript, which makes the asymmetry
+    strange. Held back from v0.4 deliberately: it is a resolver and emitter change, and it
+    belongs to a release about dispatch rather than one about the boundary.
+27. **No object literals, and no string escapes.** `f({pan: -1})` is unwritable and so is
+    inline JSON, since `"` cannot be escaped. The workaround is two plain lines —
+    `hands.JSON.parse "{}"` then a member assignment — and principle zero says an options
+    bag has no equine reading, so this may be correct as it stands. Recorded because it
+    turned up in two ports, not because it needs fixing.
 ## 12. Limits
 
 What the language does not do. Some of these are chosen and some are merely true; the

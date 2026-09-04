@@ -107,7 +107,15 @@ class Emitter {
 
   statements(list) {
     this.hoist(list);
+    this.statementList(list);
+  }
 
+  // The dispatch shared by `statements` and the context handler. The context
+  // remainder is emitted WITHOUT its own hoist: the parent statements() already
+  // hoisted the whole list into this block, and a second `let` inside the try
+  // would shadow the declarations the lead mare's call needs after it — the
+  // entry point runs in this block, not in the try's scope.
+  statementList(list) {
     for (let i = 0; i < list.length; i++) {
       const s = list[i];
 
@@ -139,9 +147,23 @@ class Emitter {
 
       if (s.type === "Context") {
         const rest = list.slice(i + 1);
+        // A context governs the rest of its block (§8). The remainder runs
+        // inside the try — in this same block, with no inner hoist, so the
+        // declarations the lead mare needs stay in scope — and the entry
+        // point is the last thing the context watches, still on the stack
+        // where the handlers can answer her. The group's own lead logic must
+        // not fire twice, so statements() has consumed the remainder and the
+        // call is emitted here, exactly once.
         this.statement(s);
+        const lead = rest.find((s2) => s2.type === "Cue" && s2.lead);
         this.line(`try {`);
-        this.indent(() => this.statements(rest));
+        this.indent(() => {
+          this.statementList(rest);
+          if (lead) {
+            this.blank();
+            this.line(`await H.call(${js(lead.name)}, [], null); // lead mare`);
+          }
+        });
         this.line(`} finally {`);
         this.indent(() => this.line(`H.popContext();`));
         this.line(`}`);
@@ -229,10 +251,17 @@ class Emitter {
     this.line(`await (async () => {`);
     this.indent(() => {
       this.band = node.name;
+      // A context handler emits the entry point itself (the lead mare runs
+      // after the handlers in the same block), so the group must not fire it
+      // a second time.
+      const handledByContext = node.body.some(
+        (s) => s.type === "Context" && node.body.some((c) => c.type === "Cue" && c.lead),
+      );
       this.statements(node.body);
       // The lead mare is the entry point — an older mare who knows the home range.
       // An entry point nothing calls is not one, so the group runs hers once its
       // declarations are in place.
+      if (handledByContext) return;
       const lead = node.body.find((s) => s.type === "Cue" && s.lead);
       if (lead) {
         this.blank();

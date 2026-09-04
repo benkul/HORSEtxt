@@ -107,6 +107,17 @@ emission, not with a source map.
 
 Beyond that, the parts of the design still ahead of the implementation:
 
+- **A real debugger.** `src/debugger.js` renders the horse's true state — every
+  emission as a frame, labelled with its locus and the answer it got — and the
+  ears/head states change what you see (see `test/debugger.test.js`,
+  `examples/trace.horse`, and GRAMMAR.md §12n). The trace is live in the playground.
+  **And the horse itself is drawn.** `src/horse.js` stands a real horse beside the
+  trace, reading the same stream: ears flatten and the whole body dims and retreats
+  when the animal is agonistic (EAD103) and not attending; a high head rears, a low
+  head sinks; a divided ear points one ear each way and the two eyes look different
+  ways. Nostrils, lids, tail and tension all trace to the bibliography
+  (`test/horse.test.js`, `examples/moods.horse`, GRAMMAR.md §12n.1, `docs/horse/`).
+  What is not built yet is the standalone debugger panel with stepping.
 - **History as semantics.** Trials-to-criterion training, so a newly defined cue is not
   reliable until it has been run. Late-release degradation toward learned helplessness.
   Welfare as a capability gate.
