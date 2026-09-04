@@ -1,12 +1,14 @@
 {
   "name": "horsetxt",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "A general-purpose language for horses. Compiles to JavaScript.",
   "type": "module",
   "private": true,
-  "bin": { "horsetxt": "bin/horsetxt.js" },
+  "bin": {
+    "horsetxt": "bin/horsetxt.js"
+  },
   "scripts": {
-    "test": "node test/lexer.test.js && node test/parser.test.js && node test/weather.test.js && node test/resolve.test.js && node test/herd.test.js && node test/gaits.test.js && node test/perception.test.js && node test/truth.test.js && node test/boundary.test.js && node test/emit.test.js && node test/browser.test.js && node test/debugger.test.js && node test/horse.test.js",
+    "test": "node test/lexer.test.js && node test/parser.test.js && node test/weather.test.js && node test/resolve.test.js && node test/herd.test.js && node test/gaits.test.js && node test/perception.test.js && node test/truth.test.js && node test/affect.test.js && node test/degradation.test.js && node test/boundary.test.js && node test/emit.test.js && node test/browser.test.js && node test/claims.test.js && node test/debugger.test.js && node test/horse.test.js", 
     "serve": "python3 -m http.server 8777",
     "check": "node bin/horsetxt.js check examples/*.horse"
   }

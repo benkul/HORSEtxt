@@ -30,6 +30,42 @@ const WANTS_AN_ANSWER_NOW = new Set([
   "findLastIndex", "some", "every", "flatMap",
 ]);
 
+// GRAMMAR.md §3. What a name is known to be holding, when a call is written on it.
+// Declarations that are plainly not signals — a deck is drawn from, a pile is left
+// in, a bachelor group is watched, and none of the three is called.
+const NOT_A_CUE = {
+  pile: "a pile",
+  forage: "a deck",
+  group: "a group",
+};
+
+// And the same for a binding, read off what it was bound to. Only the certain cases
+// are listed: a member, an index, a call and a `grass` can all come back holding a
+// cue, so none of them appears here.
+const HOLDS = {
+  Number: "a number",
+  Text: "a string",
+  Duration: "a duration",
+  Distance: "a distance",
+  Range: "a range",
+  List: "a list",
+  Affect: "an affect",
+  Graded: "a graded value",
+  Chord: "a chord",
+  Bare: "bare",
+  Facs: "a facial action",
+  State: "a posture",
+  Weather: "a weather reading",
+  Chance: "a draw",
+  Recognise: "a recognition",
+  Hands: "the hands boundary",
+  Binary: "a sum",
+  Negate: "a number",
+  Compare: "an answer",
+  Logical: "an answer",
+  Not: "an answer",
+};
+
 class Scope {
   constructor(parent, kind) {
     this.parent = parent;
@@ -587,6 +623,44 @@ class Resolver {
     }
   }
 
+  // GRAMMAR.md §3. "A cue name in expression position is the cue itself" has been in
+  // the grammar since v0.1, and a cue could be handed out to JavaScript — but a cue
+  // held under another name could not be called back, so a dispatch table was
+  // inexpressible and every branch had to be written out.
+  //
+  // The name a call is written under is the handler's word for the signal, not the
+  // signal. So this follows the word back to whatever it stands for, and checks what
+  // it finds there. What cannot be known statically is left to the runtime, which
+  // already refuses to call something that is not a cue.
+  //
+  // The only compile-time refusal left is the provable one: a name holding a number
+  // will not be holding a cue by the time it is called.
+  heldCue(info, scope, seen = new Set()) {
+    if (!info) return null;
+    if (info.kind === "cue") return { cue: { arity: info.arity } };
+    if (NOT_A_CUE[info.kind]) return { never: NOT_A_CUE[info.kind] };
+
+    // A parameter, a grazed item, a value carried by a signal: unknowable here, and
+    // the dispatch table lives in exactly these. Left to the runtime.
+    if (info.kind !== "binding") return null;
+
+    const value = info.node && info.node.value;
+    if (!value) return null;
+
+    if (value.type === "Name") {
+      // `remember a as b` and `remember b as a` are both declarations, and both are
+      // hoisted, so the walk has to be able to come back to where it started.
+      if (seen.has(value.name)) return null;
+      seen.add(value.name);
+      const behind = this.heldCue(scope.lookup(value.name), scope, seen);
+      if (behind && behind.cue) return { cue: behind.cue, through: value.name };
+      return behind;
+    }
+
+    if (HOLDS[value.type]) return { never: HOLDS[value.type] };
+    return null;
+  }
+
   chord(node, scope) {
     for (const st of node.states) {
       if (st.kind !== "channel") continue;
@@ -620,13 +694,17 @@ class Resolver {
   // Durations and distances are distinct primitive types, not numbers with
   // suffixes (STDLIB.md). The grammar accepts any expression in these positions;
   // this is where a literal of the wrong kind is caught.
+  // Arithmetic never produces a duration or a distance: they are types rather than
+  // numbers with suffixes, and nothing combines them into one. So a sum in either
+  // position is refusable here, not only a bare literal — otherwise `every 5` is
+  // refused while `every (2 + 3)` means five milliseconds.
   wantDuration(node, where) {
-    if (node.type === "Distance" || node.type === "Number") {
+    if (node.type === "Distance" || node.type === "Number" || node.type === "Binary") {
       this.fail(node, `${where} needs a duration, like 10s or 900ms`, "STDLIB.md");
     }
   }
   wantDistance(node, where) {
-    if (node.type === "Duration" || node.type === "Number") {
+    if (node.type === "Duration" || node.type === "Number" || node.type === "Binary") {
       this.fail(node, `${where} needs a distance, like 20px`, "STDLIB.md");
     }
   }
@@ -660,16 +738,26 @@ class Resolver {
         for (const a of e.args) this.expr(a, scope);
         if (e.callee && e.callee.type === "Name") {
           const info = scope.lookup(e.callee.name);
-          if (info && info.kind === "cue" && info.arity !== e.args.length) {
+          const held = info ? this.heldCue(info, scope) : null;
+
+          if (held && held.cue && held.cue.arity !== e.args.length) {
+            const label = held.through
+              ? `${JSON.stringify(e.callee.name)}, which holds cue ` +
+                `${JSON.stringify(held.through)},`
+              : `cue ${JSON.stringify(e.callee.name)}`;
             this.fail(
               e,
-              `cue ${JSON.stringify(e.callee.name)} takes ${info.arity} ` +
-              `${info.arity === 1 ? "argument" : "arguments"}, given ${e.args.length}`,
+              `${label} takes ${held.cue.arity} ` +
+              `${held.cue.arity === 1 ? "argument" : "arguments"}, given ${e.args.length}`,
               "GRAMMAR.md §3",
             );
           }
-          if (info && info.kind !== "cue") {
-            this.fail(e, `${JSON.stringify(e.callee.name)} is not a cue`, "GRAMMAR.md §3");
+          if (held && held.never) {
+            this.fail(
+              e,
+              `${JSON.stringify(e.callee.name)} holds ${held.never}, not a cue`,
+              "GRAMMAR.md §3",
+            );
           }
         }
         this.opposingSignals(e, scope);
@@ -702,6 +790,31 @@ class Resolver {
         this.expr(e.patches, scope);
         return;
       case "Binary":
+        this.expr(e.left, scope);
+        this.expr(e.right, scope);
+        // The provable half. A cue in arithmetic is the same fault
+        // as a method in arithmetic, and here the resolver knows: `draw - 1`
+        // subtracts from the cue rather than from what it answers.
+        //
+        // Identity is left alone -- `Compare` is not this case, because asking
+        // whether two names hold the same cue is a real question.
+        if (e.op === "-" || e.op === "*" || e.op === "/") {
+          for (const side of [e.left, e.right]) {
+            if (!side || side.type !== "Name") continue;
+            const info = scope.lookup(side.name);
+            if (!info) continue;
+            const held = this.heldCue(info, scope);
+            if (held && held.cue) {
+              this.fail(
+                side,
+                `${JSON.stringify(side.name)} is a cue, and arithmetic on a cue ` +
+                `has no answer in it; write (${side.name}) to ask it for one`,
+                "GRAMMAR.md §11a",
+              );
+            }
+          }
+        }
+        return;
       case "Compare":
       case "Logical":
         this.expr(e.left, scope);

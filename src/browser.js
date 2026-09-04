@@ -87,6 +87,19 @@ export function browserHost(options = {}) {
 
     onWatch() { /* the sentinel's business, not the page's */ },
 
+    // What the animal has to say while it is running. Compile errors are the page
+    // author's; these are the running program's, and until v0.5 they were collected
+    // and dropped — the one-second contract, the band-size lint and the empty stall
+    // all went into an array nothing ever read.
+    //
+    // Said once each, when they happen. Nothing here repeats: a late release is one
+    // note per release, and the boundary speaks at the limit and then habituates.
+    onNote(note) {
+      if (!globalThis.console) return;
+      console.log(`%cHORSEtxt%c ${note.message}`, "font-weight:bold", "font-weight:normal");
+      if (note.citation) console.log(`  ${note.citation}`);
+    },
+
     // The hold. Stay within `jitter` of where the pointer was for `ms`, and report
     // progress the whole way so a rising tension is expressible.
     //

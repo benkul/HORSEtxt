@@ -201,6 +201,61 @@ T("the genotype still gates which anchors are reachable", async () => {
   ok(threw, "pace needs the allele even though it is only a vector");
 });
 
+// ------------------------------------------------------- pacing is not lateness
+//
+// GRAMMAR.md §3. The one-second contract is about *latency* — the gap between a
+// signal and its answer, which is what the rein-tension work measures. A horse
+// asked to stand for ten seconds and standing for ten seconds has answered
+// immediately and correctly.
+//
+// Through v0.4 the budget measured wall time, so a cue holding a gait open was
+// charged for every interval it deliberately waited. Nothing ever said so, because
+// the diagnostics were collected and never read out.
+
+T("a cue is not late for time spent between strides", async () => {
+  const H = new Horse({});
+  H.releaseBudget = 60;
+  const held = H.cue("held", [], async () => {
+    let strides = 0;
+    await H.gait("walk", [async () => { if (++strides >= 4) H.halt(); }], { interval: { value: 30, unit: "ms" } });
+  });
+  await held();
+  eq(H.diagnostics, [], "four 30ms intervals are not a late release");
+});
+
+T("but slow work inside the stride is still late", async () => {
+  const H = new Horse({});
+  H.releaseBudget = 60;
+  const grinding = H.cue("grinding", [], async () => {
+    await H.gait("walk", [async () => { await new Promise((r) => setTimeout(r, 120)); }]);
+  });
+  await grinding();
+  ok(H.diagnostics.some((d) => /punishes/.test(d.message)), JSON.stringify(H.diagnostics));
+});
+
+T("a stand is time the animal was told to take", async () => {
+  const H = new Horse({
+    hold: ({ ms }) => new Promise((r) => setTimeout(() => r(true), ms)),
+  });
+  H.releaseBudget = 60;
+  const waiting = H.cue("waiting", [], async () => {
+    await H.stand({ duration: { value: 120, unit: "ms" } }, async () => {});
+  });
+  await waiting();
+  eq(H.diagnostics, [], "standing still is the answer, not a delay in giving it");
+});
+
+// The time belongs to whoever spent it, and it is not double-counted: a cue that
+// waits inside another cue clears both of them, because both were being patient.
+T("waiting is discounted at every depth", async () => {
+  const H = new Horse({});
+  H.releaseBudget = 60;
+  const inner = H.cue("inner", [], async () => { await H.waited(120); });
+  const outer = H.cue("outer", [], async () => { await inner(); });
+  await outer();
+  eq(H.diagnostics, [], "neither one was late; both were waiting");
+});
+
 // ---------------------------------------------------------------------- done
 
 for (const [name, fn] of tests) {

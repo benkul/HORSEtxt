@@ -1,5 +1,5 @@
 // HORSEtxt parser. Recursive descent over the token stream from lexer.js.
-// Grammar reference: GRAMMAR.md. Deviations are recorded in §12c there.
+// Grammar reference: GRAMMAR.md.
 
 import { T } from "./lexer.js";
 
@@ -232,7 +232,7 @@ class Parser {
       if (k === "when") return this.parseConditional();
       // `halt` is terminal, not a container. The grammar wrote it as a gait_head
       // with a mandatory block, which is wrong — you cannot do things "during" a
-      // halt. Recorded in §12c.
+      // halt.
       if (k === "halt") {
         this.next();
         this.expect(T.NEWLINE, undefined, "§5");
@@ -309,7 +309,7 @@ class Parser {
   //
   // The grammar wrote `"cue"` as mandatory, but `lead mare draw` reads far better
   // than `lead mare cue draw` and every example used the shorter form. `lead mare`
-  // already says it is a cue, so `cue` is optional after it. Recorded in §12c.
+  // already says it is a cue, so `cue` is optional after it.
   parseCue() {
     const start = this.tok;
     let lead = false;
@@ -447,7 +447,7 @@ class Parser {
     const source = this.parseExpression();
     let as = null;
     // The point of balance sits at the shoulder: pressure behind it drives forward,
-    // pressure in front of it drives back (GRAMMAR.md §12g).
+    // pressure in front of it drives back (GRAMMAR.md §9a).
     let driven = null;
     if (this.isKw("from")) {
       this.next();
@@ -455,9 +455,9 @@ class Parser {
       else if (this.isKw("the")) {
         this.next();
         if (this.is(T.IDENT, "front")) { this.next(); driven = "back"; }
-        else this.fail("pressure is applied from behind, or from the front", "§12g");
+        else this.fail("pressure is applied from behind, or from the front", "§9a");
       } else {
-        this.fail("pressure is applied from behind, or from the front", "§12g");
+        this.fail("pressure is applied from behind, or from the front", "§9a");
       }
     }
     if (this.isKw("as")) {
@@ -957,7 +957,7 @@ class Parser {
   }
 
   // A list element is a postfix, not an application — otherwise `[a b]` is
-  // ambiguous between two elements and one call. Parenthesise to call. (§12c)
+  // ambiguous between two elements and one call. Parenthesise to call.
   parseList() {
     const open = this.next();
     const items = [];

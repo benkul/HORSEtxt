@@ -109,7 +109,52 @@ test("arity is checked against a known cue", () => {
 
 test("calling something that is not a cue is reported", () => {
   const e = msgs('band a\n    pile p at "k"\n    cue go\n        release p 1\n');
-  ok(/is not a cue/.test(e[0]), e[0]);
+  ok(/holds a pile, not a cue/.test(e[0]), e[0]);
+});
+
+// ------------------------------------------------------------ cues, held and called
+//
+// GRAMMAR.md §3. A cue held under another name is the same signal, and the name is
+// the handler's word for it. Until v0.5 the resolver refused every call on a name it
+// had not itself declared a cue, so a dispatch table was inexpressible and every
+// branch had to be written out.
+
+test("a cue held by a binding can be called", () => {
+  clean("band a\n    cue answer\n        release 1\n" +
+        "    cue go\n        remember f as answer\n        release (f)\n");
+});
+
+test("a cue arriving as a parameter can be called there", () => {
+  clean("band a\n    cue answer\n        release 1\n" +
+        "    cue apply f\n        release (f)\n" +
+        "    cue go\n        release apply answer\n");
+});
+
+test("arity is still checked through a binding", () => {
+  const e = msgs("band a\n    cue one n\n        release n\n" +
+                 "    cue go\n        remember f as one\n        release f 1 2\n");
+  ok(/holds cue "one", takes 1 argument, given 2/.test(e[0]), e[0]);
+});
+
+test("a chain of names is followed to the cue behind it", () => {
+  clean("band a\n    cue answer\n        release 1\n" +
+        "    cue go\n        remember f as answer\n        remember g as f\n" +
+        "        release (g)\n");
+});
+
+test("a binding that holds a number is still refused", () => {
+  const e = msgs("band a\n    cue go\n        remember n as 3\n        release (n)\n");
+  ok(/holds a number, not a cue/.test(e[0]), e[0]);
+});
+
+test("a binding of unknowable provenance is left to the runtime", () => {
+  clean("band a\n    cue go\n        remember f as hands.queueMicrotask\n" +
+        "        release (f)\n");
+});
+
+test("two names holding each other do not hang the walk", () => {
+  msgs("band a\n    cue go\n        remember f as g\n        remember g as f\n" +
+       "        release (f)\n");
 });
 
 test("a member call is not arity-checked", () => {

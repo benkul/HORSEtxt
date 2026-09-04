@@ -272,6 +272,101 @@ T("a stand in a real program runs its otherwise when the hold breaks", async () 
   eq(seen.map((p) => p.ears), ["agonistic"], "the broken hold spoke instead");
 });
 
+// ------------------------------------------------- outcomes inside a stand body
+//
+// GRAMMAR.md §7, §10. The body of a stand is the one place in the language where
+// a statement runs inside a *host* callback, and a host is right to be defensive
+// about what it calls — `browserHost` catches so a throwing body cannot break its
+// animation frame. But an outcome is not a failure, and through v0.5 every `balk`,
+// `leave` and `release` raised in a stand body was swallowed by that catch: the
+// cue carried straight on past the stand, silently.
+//
+// A host that catches everything, exactly as browserHost does.
+function holdingHost(frames = 5) {
+  return {
+    stop: () => false,
+    hold: ({ onProgress }) => new Promise((settle) => {
+      let n = 0;
+      const tick = () => {
+        if (onProgress) Promise.resolve(onProgress(n / frames)).catch(() => {});
+        if (++n > frames) return settle(true);
+        setTimeout(tick, 1);
+      };
+      tick();
+    }),
+  };
+}
+
+T("a balk in a stand body ends the cue", async () => {
+  globalThis.PAST = [];
+  const r = await runSource([
+    "band a",
+    "    lead mare go",
+    "        stand 200ms within 20px as held",
+    "            balk",
+    "        hands.PAST.push 1",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", holdingHost());
+  eq(r.errors.length, 0, JSON.stringify(r.errors));
+  eq(globalThis.PAST, [], "nothing after the stand ran");
+});
+
+T("a release in a stand body releases the cue", async () => {
+  globalThis.OUT = [];
+  const r = await runSource([
+    "band a",
+    "    cue holding",
+    "        stand 200ms within 20px as held",
+    "            release 7",
+    "        release 0",
+    "    lead mare go",
+    "        remember got as (holding)",
+    "        hands.OUT.push got",
+    "        release got",
+    "",
+  ].join("\n"), "t.horse", holdingHost());
+  eq(r.errors.length, 0, JSON.stringify(r.errors));
+  eq(globalThis.OUT, [7], "the stand's answer is the cue's answer");
+});
+
+// A hold abandoned at the first frame of ten seconds does not go on holding.
+T("an abandoned hold does not wait out its duration", async () => {
+  globalThis.OUT = [];
+  const began = Date.now();
+  await runSource([
+    "band a",
+    "    lead mare go",
+    "        stand 10s within 20px as held",
+    "            balk",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {
+    stop: () => false,
+    hold: ({ onProgress }) => new Promise((settle) => {
+      // A host that would hold for the full ten seconds if nothing stopped it.
+      if (onProgress) Promise.resolve(onProgress(0)).catch(() => {});
+      setTimeout(() => settle(true), 10000).unref?.();
+    }),
+  });
+  ok(Date.now() - began < 1000, `took ${Date.now() - began}ms`);
+});
+
+// The body is not asked again once it has answered.
+T("a body that has answered is not run again", async () => {
+  globalThis.OUT = [];
+  await runSource([
+    "band a",
+    "    lead mare go",
+    "        stand 200ms within 20px as held",
+    "            hands.OUT.push 1",
+    "            balk",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", holdingHost(5));
+  eq(globalThis.OUT, [1], "asked once, answered once");
+});
+
 // ---------------------------------------------------------------- the examples
 //
 // Importing a module parses it without running it, which is how `graze` over a
@@ -294,10 +389,33 @@ function lendDOM() {
   return () => { if (had) globalThis.document = previous; else delete globalThis.document; };
 }
 
+// An example is a page program, and a page hands it more than a document: the
+// seam it works against. `exposure.horse` drives a plate the page owns, so lend
+// it one that records nothing and answers everything.
+function lendPage() {
+  const restoreDOM = lendDOM();
+  const had = "EN_EXPOSURE" in globalThis;
+  const previous = globalThis.EN_EXPOSURE;
+  globalThis.EN_EXPOSURE = {
+    count: 3,
+    srcOf: () => "a.jpg",
+    inside: () => true,
+    busy: () => false,
+    shade: () => 0,
+    clear: () => null,
+    reveal: () => "a.jpg",
+    attach: () => {},
+  };
+  return () => {
+    if (had) globalThis.EN_EXPOSURE = previous; else delete globalThis.EN_EXPOSURE;
+    restoreDOM();
+  };
+}
+
 T("every example file runs", async () => {
   const dir = join(here, "..", "examples");
   const files = ["exposure.horse", "gallery.horse", "listening.horse"];
-  const restore = lendDOM();
+  const restore = lendPage();
   const bad = [];
   try {
     for (const f of files) {
@@ -312,6 +430,124 @@ T("every example file runs", async () => {
     restore();
   }
   if (bad.length) throw new Error(bad.join("\n  "));
+});
+
+// Running without throwing is not the same as doing anything. `listening.horse`
+// said `leave` where it meant `balk` from v0.1 until v0.5.1, so the first silent
+// channel ended the program: no channels, no pulse, and no error either, because
+// leaving is a terminal success. Every suite stayed green and `check` passed it,
+// because `check` resolves a program and does not listen to one.
+//
+// So the examples are now asked what they did, not only whether they survived.
+
+T("listening.horse opens channels rather than leaving", async () => {
+  const src = readFileSync(join(here, "..", "examples", "listening.horse"), "utf8");
+  const restore = lendDOM();
+  try {
+    let opened = 0, left = 0;
+    // Enough rooms that all-silent-by-chance is not what is being measured.
+    for (let i = 0; i < 40; i++) {
+      const beds = [];
+      globalThis.document.createElement = () => {
+        const el = { style: {}, dataset: {}, appendChild() {} };
+        beds.push(el);
+        return el;
+      };
+      const r = await runSource(src, "listening.horse", { stop: () => true });
+      if (r.left) left++;
+      opened += beds.length;
+    }
+    eq(left, 0, "a silent channel declines; it does not end the room");
+    ok(opened > 0, "over forty rooms, something sounded");
+  } finally {
+    restore();
+  }
+});
+
+T("exposure.horse binds rather than standing at load", async () => {
+  const src = readFileSync(join(here, "..", "examples", "exposure.horse"), "utf8");
+  const restore = lendDOM();
+  try {
+    let attached = null;
+    let shaded = 0;
+    globalThis.EN_EXPOSURE = {
+      count: 3,
+      srcOf: () => "a.jpg",
+      inside: () => true,
+      busy: () => false,
+      shade: () => { shaded++; return 0; },
+      clear: () => null,
+      reveal: () => "a.jpg",
+      attach: (develop) => { attached = develop; },
+    };
+    // A host with no hold at all. Standing at load would break the hold and run
+    // the otherwise; either way, nothing may develop before someone arrives.
+    const r = await runSource(src, "exposure.horse", {});
+    ok(!r.threw, r.threw && String(r.threw));
+    ok(typeof attached === "function", "it handed `develop` to the page");
+    eq(shaded, 0, "nothing develops until someone arrives");
+  } finally {
+    delete globalThis.EN_EXPOSURE;
+    restore();
+  }
+});
+
+// STDLIB.md documented `count`, `empty`, `first` and `last` on a list for five
+// releases. None had ever existed — a list emits as a plain array, no member is
+// resolved (§13 item 23), and all four came back bare, silently. Nothing used
+// them, which is exactly why nothing caught it.
+//
+// The decision is that a list has no members of its own: it is a value, and §11
+// makes the boundary onto values flat. `xs.length` is how you ask. This test is
+// here so that decision is written somewhere that runs.
+
+T("a list has no members of its own", async () => {
+  globalThis.OUT = [];
+  const r = await runSource([
+    "band a",
+    "    lead mare go",
+    "        remember xs as [10 20 30]",
+    "        hands.OUT.push xs.count",
+    "        hands.OUT.push xs.empty",
+    "        hands.OUT.push xs.first",
+    "        hands.OUT.push xs.last",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {});
+  eq(r.errors.length, 0, JSON.stringify(r.errors));
+  eq(globalThis.OUT, [null, null, null, null], "the language's vocabulary is not a list's");
+});
+
+T("a list answers JavaScript's vocabulary through the flat boundary", async () => {
+  globalThis.OUT = [];
+  await runSource([
+    "band a",
+    "    lead mare go",
+    "        remember xs as [10 20 30]",
+    "        hands.OUT.push xs.length",
+    "        hands.OUT.push xs[0]",
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {});
+  eq(globalThis.OUT, [3, 10]);
+});
+
+// GRAMMAR.md §10, and the other half of the same correction. STDLIB said filtering
+// a graze was a `blank` in its body; a blank leaves the cue, not the iteration.
+T("a blank in a graze body leaves the cue, it does not skip", async () => {
+  globalThis.OUT = [];
+  await runSource([
+    "band a",
+    "    lead mare go",
+    "        graze [1 2 3 4] as n",
+    "            when n = 2",
+    "                blank",
+    "            hands.OUT.push n",
+    '        hands.OUT.push "after"',
+    "        release",
+    "",
+  ].join("\n"), "t.horse", {});
+  eq(globalThis.OUT, [1], "a skip would have collected 1, 3, 4 and then carried on");
 });
 
 T("grazing works over a list, a forage and a pile", async () => {
@@ -382,6 +618,10 @@ T("the samples demonstrate what they claim", async () => {
     late.horse.diagnostics.some((d) => /punishes/.test(d.message)),
     `expected a late-release note, got: ${JSON.stringify(late.horse.diagnostics)}`,
   );
+
+  // a cue held under another name is the same cue, and answers as itself
+  const named = await runSource(SAMPLES["a cue held under another name"], "s.horse", {});
+  ok(!named.threw, named.threw && named.threw.message);
 
   // a held gait halts itself rather than running forever
   const held = await runSource(SAMPLES["halting a held gait"], "s.horse", {});

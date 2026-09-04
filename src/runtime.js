@@ -196,6 +196,18 @@ export function pile(key) { return new Pile(key); }
 
 const NATURAL_BAND = 8; // one stallion, two to four mares, and offspring
 
+// How many unanswered crossings of one `hands` path before the boundary says so
+// (GRAMMAR.md §11a). Three, and this one is a choice rather than a finding: two is
+// a coincidence and four has already been three. It is deliberately not tunable
+// from the language — a boundary you can quieten is one you will quieten.
+export const BARE_CROSSINGS = 3;
+
+// How many late releases of one cue before its binding stops answering
+// (GRAMMAR.md §3). Also a choice rather than a finding, and not tunable for a
+// stronger reason than the above: an author does not get to decide how much of
+// this an animal tolerates.
+export const LATE_RELEASES = 3;
+
 // Measured inter-onset intervals, in milliseconds (BIBLIOGRAPHY.md, gaits).
 const TEMPO = { walk: 301, trot: 352, pace: 352, canter: 148, gallop: 148, tolt: 301, back: 301 };
 
@@ -297,9 +309,13 @@ export class Horse {
     this.posture = null;
 
     this.exposures = new Map(); // habituation counts, keyed per stimulus shape
+    this.crossings = new Map(); // hands path -> unanswered crossings in a row
     this.trials = new Map();    // cue -> times called
+    this.late = new Map();      // cue -> late releases, under a declared individual
+    this.helpless = new Set();  // cues that have stopped answering
     this.diagnostics = [];
     this.releaseBudget = 1000;  // ms; release is the reinforcer
+    this.deliberate = 0;        // ms spent standing or between strides, not late
     this.left = false;          // set when `leave` ends the program
     this.standing = false;      // the program has finished; the animal is still here
   }
@@ -349,8 +365,21 @@ export class Horse {
     }
   }
 
+  // A note is said when it happens, not collected and read out at the end. Most of
+  // what this animal has to say happens after the lead mare has released — inside a
+  // gait, or in a cue the page kept and called back into — and a report delivered at
+  // the end of the program would be delivered before any of it.
+  //
+  // Late is its own fault here. The language says so about release timing (§3) and
+  // the same applies to it: a diagnostic that arrives long after the thing it
+  // describes is not information about the thing.
+  //
+  // The array stays, for the CLI and for anything that wants the whole account.
   note(message, citation) {
-    this.diagnostics.push({ message, citation });
+    const said = { message, citation };
+    this.diagnostics.push(said);
+    if (this.host.onNote) this.host.onNote(said);
+    return said;
   }
 
   // ---------------------------------------------------------------------- cues
@@ -363,20 +392,38 @@ export class Horse {
   cue(name, params, body, opts = {}) {
     const self = this;
     const fn = async (...args) => {
+      // GRAMMAR.md §3. The far end of the progression §11a describes: the animal
+      // has stopped answering, and the body does not run.
+      //
+      // It comes back **bare** rather than refused. A balk is an answer — Mejdell's
+      // point is that an answer has to be given — and helplessness is the absence
+      // of one. So `when` on it is false (§8a), which is the honest reading: the
+      // program asked and nothing came back.
+      //
+      // Silent, deliberately. §11a says silence arrives only at the end of the
+      // progression, as learned helplessness; that silence is the thing being
+      // modelled rather than a gap in the reporting. The crossing into it was said
+      // once, when it happened.
+      if (self.helpless.has(name)) return undefined;
+
       const started = Date.now();
       const contextDepth = self.contexts.length;
+      // What was already spent standing before this cue began belongs to whoever
+      // was standing, not to this one. The difference is this cue's own waiting.
+      const waitedBefore = self.deliberate;
+      const late = () => self.deliberate - waitedBefore;
       self.trials.set(name, (self.trials.get(name) || 0) + 1);
       try {
         const out = await body(...args);
-        self.checkRelease(name, started);
+        self.checkRelease(name, started, late());
         return out;
       } catch (e) {
         if (e instanceof Released) {
-          self.checkRelease(name, started);
+          self.checkRelease(name, started, late());
           return e.value;
         }
         if (e instanceof Balk) {
-          self.checkRelease(name, started);
+          self.checkRelease(name, started, late());
           return REFUSED;
         }
         // GRAMMAR.md §11a. A `leave` ends the program, and past the point where the
@@ -394,7 +441,7 @@ export class Horse {
             `ends nothing`,
             "GRAMMAR.md §11a",
           );
-          self.checkRelease(name, started);
+          self.checkRelease(name, started, late());
           return REFUSED;
         }
         throw e;
@@ -409,13 +456,66 @@ export class Horse {
     return fn;
   }
 
-  checkRelease(name, started) {
-    const elapsed = Date.now() - started;
-    if (elapsed > this.releaseBudget) {
+  // Time the animal spent deliberately taking time — held between strides, or
+  // standing still because it was asked to. It is not lateness, and it does not
+  // count against the release.
+  //
+  // The contract is about *latency*: the gap between a signal and its answer, which
+  // is what the rein-tension work measures. A horse asked to stand for ten seconds
+  // and standing for ten seconds has answered immediately and correctly. Charging
+  // that to its budget warns an author for using the language's own primitives, and
+  // `stand` is the one construct whose whole content is spending time (§7).
+  //
+  // Not visible from inside the language, and not meant to be. It is bookkeeping
+  // about a diagnostic, not a fact about the animal.
+  //
+  // Limbs that strike together run together (§5), so two thunks in one group can be
+  // waiting at the same moment and both add their full span. Overlapping waits are
+  // therefore over-counted, and a cue that does it comes out looking early rather
+  // than late. Deliberately left that way: this exists to stop the contract crying
+  // wolf, and the failure it should have is a missed warning, not a false one.
+  async waited(ms, how) {
+    if (!ms) return how ? how() : undefined;
+    const began = Date.now();
+    try {
+      return how ? await how() : await sleep(ms);
+    } finally {
+      this.deliberate += Date.now() - began;
+    }
+  }
+
+  checkRelease(name, started, deliberate = 0) {
+    const elapsed = Date.now() - started - deliberate;
+    if (elapsed <= this.releaseBudget) return;
+
+    // Cumulative, and it does not reset on a prompt release. That is not an
+    // oversight: learned helplessness is the animal having learned that its
+    // behaviour does not control the outcome, and restoring the contingency does
+    // not un-teach it. A counter that reset would mean retrying repaired it.
+    const late = (this.late.get(name) || 0) + 1;
+    this.late.set(name, late);
+
+    // Said once per cue, then habituated — the same rule as the boundary (§11a).
+    // Saying it on every late release would be the flooding §10 warns about, and
+    // the count is carried by the degradation note below.
+    if (late === 1) {
       this.note(
         `${name} released after ${elapsed}ms; the release is the reinforcer, and a ` +
         `late release punishes the response it should reward`,
         "Applied Animal Behaviour Science 2025, rein tension release timing",
+      );
+    }
+
+    // GRAMMAR.md §3. Only under a declared individual: degradation is a history,
+    // and without an animal to carry one there is nobody for it to happen to (§2).
+    if (!this.conditioned) return;
+
+    if (late >= LATE_RELEASES && !this.helpless.has(name)) {
+      this.helpless.add(name);
+      this.note(
+        `${name} has stopped answering after ${late} late releases; the binding is ` +
+        `degraded and retrying does not repair it`,
+        "Hall et al. 2008, learned helplessness in horses",
       );
     }
   }
@@ -448,10 +548,22 @@ export class Horse {
 
   // Calls route through here so laterality and provenance apply. `hands` does not:
   // it is a flat, unconditioned boundary (GRAMMAR.md §11).
-  async call(callee, args, side) {
+  //
+  // `held` is the name the call was written under, which is not always the name of
+  // the cue: a cue can be passed, and then it is called under whatever the receiver
+  // called it. Training does not follow that name — the count is kept inside the
+  // cue, against the name it was taught under. A second word for a signal is the
+  // handler's convenience and not a second signal (GRAMMAR.md §3).
+  async call(callee, args, side, held) {
     if (typeof callee !== "function") {
-      throw new TypeError(`${String(callee)} is not a cue`);
+      throw new TypeError(`${held ? held : String(callee)} is not a cue`);
     }
+
+    // A function that is not a cue came out of `hands`, and binding it to a name
+    // did not bring it inside the effect system (GRAMMAR.md §11). It is called
+    // plainly: no side, no conditioning, nothing claimed about it.
+    if (!callee.isCue) return await callee(...args);
+
     const previous = this.side;
     if (side) this.side = side;
     try {
@@ -496,8 +608,29 @@ export class Horse {
     this.contexts.pop();
   }
 
-  // Back off. The caller decides whether to try again — a shy is not a refusal.
-  shy() { return undefined; }
+  // GRAMMAR.md §10. A startle: a sudden lateral displacement away from something
+  // perceived. It ends nothing — not the cue, not the stride, not the gait. A
+  // balking horse will not go; a shying horse went, and went sideways on the way.
+  //
+  // What it moves is which side the animal is working from, and the grounding is
+  // hemispheric rather than spatial — values have no positions in a field (§9a),
+  // so "away" cannot be derived from geometry. Startle and flight are right
+  // hemisphere, which is the left eye; what follows a startle is the animal
+  // turning to look at the thing properly, which is the left hemisphere and the
+  // right eye. So a shy hands over to the other side, and it reads correctly in
+  // both directions: startled out of categorising, the flight system has it.
+  //
+  // No argument, because the direction is not chosen. The animal does not decide
+  // which way to jump, and what startled it is already named wherever the signal
+  // was heard.
+  //
+  // The new side lasts to the end of the enclosing cue: `call` restores the
+  // previous side on the way out, which is §9a's ambient side shifting with the
+  // block rather than a separate rule.
+  shy() {
+    this.side = this.side === "left" ? "right" : "left";
+    return this.side;
+  }
 
   terminal(e) {
     return e instanceof Balk || e instanceof Leave ||
@@ -569,7 +702,7 @@ export class Horse {
           await this.stride(name, thunks, opts);
           if (this.left) return;
           if (this.host.stop && this.host.stop()) return;
-          if (name !== "tolt") await sleep(ms);
+          if (name !== "tolt") await this.waited(ms);
         }
       }
       return await this.stride(name, thunks, opts);
@@ -602,7 +735,7 @@ export class Horse {
     if (name === "back") {
       for (const t of Array.from(thunks).reverse()) {
         await t();
-        if (beat) await sleep(beat);
+        if (beat) await this.waited(beat);
       }
       return;
     }
@@ -615,7 +748,7 @@ export class Horse {
     for (const group of schedule(vector, thunks)) {
       if (group.length === 1) await group[0]();
       else await Promise.all(group.map((t) => t()));
-      if (beat) await sleep(beat);
+      if (beat) await this.waited(beat);
     }
 
     // The suspension: what is left of the stride after the last hoof leaves. A tolt
@@ -623,7 +756,7 @@ export class Horse {
     if (beat) {
       const last = Math.max(...vector.phases);
       const suspension = Math.max(0, 1 - last - vector.duty);
-      if (suspension > 0.01) await sleep(beat * suspension * 4);
+      if (suspension > 0.01) await this.waited(beat * suspension * 4);
     }
   }
 
@@ -642,7 +775,41 @@ export class Horse {
       if (otherwise) return otherwise();
       throw new Balk("nothing to hold still against");
     }
-    const held = await this.host.hold({ ms, jitter, onProgress: body });
+
+    // The body is the one place in the language where a statement runs inside a
+    // *host* callback, and a host is right to be defensive about what it calls:
+    // `browserHost` catches so that a throwing body cannot break its animation
+    // frame. But an outcome is not a failure. `balk`, `leave`, `blank` and
+    // `release` are how a path out of a cue names itself (§10), and until v0.5.1
+    // every one of them raised inside a stand body was swallowed by the host and
+    // the cue simply carried on past the stand.
+    //
+    // So the outcome is caught here, on the language's side of that boundary, and
+    // raced against the hold. The animal stopped standing when it said so, not
+    // when the clock ran out — a hold abandoned at one second of ten does not go
+    // on holding for nine more.
+    let raised = null;
+    let abandon;
+    const abandoned = new Promise((_, reject) => { abandon = reject; });
+
+    const guarded = async (t) => {
+      if (raised) return undefined;   // it has already answered; do not ask again
+      try {
+        return await body(t);
+      } catch (e) {
+        raised = e;
+        abandon(e);
+        throw e;                      // a host that does look still sees it
+      }
+    };
+
+    // A stand is the one construct whose whole content is spending time, so none of
+    // it is lateness.
+    const held = await this.waited(ms, () => Promise.race([
+      this.host.hold({ ms, jitter, onProgress: guarded }),
+      abandoned,
+    ]));
+
     if (!held && otherwise) return otherwise();
     if (!held) throw new Balk("the hold broke");
     return undefined;
@@ -667,7 +834,7 @@ export class Horse {
     else throw new TypeError(`${String(source)} cannot be grazed`);
 
     // The point of balance is at the shoulder. Pressure behind it drives the animal
-    // forward; pressure in front of it drives it back (GRAMMAR.md §12g).
+    // forward; pressure in front of it drives it back (GRAMMAR.md §9a).
     if (driven === "back") items = items.slice().reverse();
 
     for (const item of items) {
@@ -709,7 +876,7 @@ export class Horse {
   // which a `spook` can handle. The right eye feeds the left hemisphere and
   // categorises instead.
 
-  // GRAMMAR.md §12g. The side is not decoration on one operation — it selects which
+  // GRAMMAR.md §9a. The side is not decoration on one operation — it selects which
   // question was asked, because the hemispheres do different work.
   //
   // `held` is what the enclosing cue was handed. A horse cannot see its own muzzle,
@@ -788,7 +955,7 @@ export class Horse {
         const watcher = thunks[turn % thunks.length];
         if (watcher) await watcher();
         turn++;
-        await sleep(ms);
+        await this.waited(ms);
         if (this.left) return;
         if (this.host.stop && this.host.stop()) return;
       }
@@ -809,6 +976,45 @@ export class Horse {
   watch(target) { if (this.host.onWatch) this.host.onWatch(target); return target; }
 
   get hands() { return globalThis; }
+
+  // ------------------------------------------------------------ boundary weight
+  //
+  // GRAMMAR.md §11a. The release is the information. Through v0.4 the boundary
+  // caught the two faults a compiler can see and then went quiet, which made it a
+  // switch: it either refused at compile time or said nothing ever again. A contact
+  // is felt continuously, and this is the felt part.
+  //
+  // Every crossing that comes back **bare** is a signal that was given and not
+  // answered. One is ordinary — an element that is not on the page yet, a lookup
+  // that missed. A run of them at the same path is the handler asking the same
+  // question and getting nothing back, which is the shape §11a warns about.
+  //
+  // Counted per path and consecutively: an answer resets it. Pressure that is
+  // sometimes released is a different signal from pressure that is never released,
+  // and only the second one is worth saying out loud.
+  //
+  // Reported once, at the limit, and then silent — habituation, the same shape as
+  // `habituates after N` (§10), keyed the same way, to the structure of the thing
+  // rather than to the occasion. Saying it every time would be the flooding the
+  // language already warns about.
+  crossed(path, value) {
+    if (!bare(value)) {
+      this.crossings.delete(path);
+      return value;
+    }
+
+    const seen = (this.crossings.get(path) || 0) + 1;
+    this.crossings.set(path, seen);
+
+    if (seen === BARE_CROSSINGS) {
+      this.note(
+        `${path} came back bare ${seen} times in a row; pressure with no release ` +
+        `teaches nothing, and the boundary cannot tell you what it is holding`,
+        "GRAMMAR.md §11a",
+      );
+    }
+    return value;
+  }
 
   // ------------------------------------------------------------- value builders
   //
@@ -840,6 +1046,40 @@ export class Horse {
   // correlated — read three times in an instant, weather gives one answer and
   // `chance` gives three.
   chance() { return Math.random(); }
+
+  // GRAMMAR.md §11a. A method used as a value.
+  //
+  // `now.getTime - 1000` subtracts from the *function*; `hands.API.count > 10` is
+  // false however many there are; `"count: " + hands.API.count` puts JavaScript
+  // source into a label. All three are the pressure-with-no-release fault (§11a) in
+  // value position: something was taken hold of across the boundary and then used
+  // instead of being asked for anything.
+  //
+  // §11a refuses this as a statement and cannot see it in an expression, because
+  // there the path does go somewhere. None of the three is an error, and a `when` on
+  // the result is silently false.
+  //
+  // `=` and `!=` are deliberately not routed here. Two names may hold the same cue,
+  // and asking whether they do is a real question rather than a mistake.
+  //
+  // A note rather than a throw. §8a already decided that a failed sum is **bare**
+  // and that bare is the honest answer to a question which had none, so the value
+  // is not wrong. What was missing is anyone saying why it had none.
+  op(a, op, b, leftPath = null, rightPath = null) {
+    const fn = typeof a === "function";
+    if (fn || typeof b === "function") {
+      const path = (fn ? leftPath : rightPath) ||
+                   (fn ? a : b).cueName || "a method";
+      this.note(
+        `${path} was used as a value rather than asked for one; ` +
+        `write (${path}) to ask it`,
+        "GRAMMAR.md §11a",
+      );
+    }
+    if (a instanceof Affect || b instanceof Affect) return affectOp(a, op, b);
+    return apply(a, op, b);
+  }
+
   recognise(value) { return recognise(value); }
   graded(n) { return graded(n); }
   affect(a, v) { return affect(a, v); }
@@ -890,6 +1130,54 @@ function bare(v) {
   return v == null || (typeof v === "number" && Number.isNaN(v));
 }
 
+function apply(a, op, b) {
+  switch (op) {
+    case "+": return a + b;
+    case "-": return a - b;
+    case "*": return a * b;
+    case "/": return a / b;
+    case "%": return a % b;
+    case ">": return a > b;
+    case "<": return a < b;
+    case ">=": return a >= b;
+    case "<=": return a <= b;
+    default: throw new TypeError(`no operator ${op}`);
+  }
+}
+
+const COMPARISON = new Set([">", "<", ">=", "<="]);
+
+// GRAMMAR.md §9. Arousal and valence are non-harmonically related and do not reduce
+// to one pitch, so an affect never collapses to a magnitude — `Affect.valueOf`
+// throws, and that refusal is the rule the construct exists for.
+//
+// It is a refusal about *collapsing*, not about arithmetic. Two affects combine
+// component-wise and stay a pair; an affect and a scalar combine on **arousal
+// only**, because arousal is intensity and valence is sign, and scaling a sign is
+// meaningless. A comparison reads arousal, since that is the axis with an order —
+// comparing valence means naming the axis.
+//
+// Anything else an affect is handed to still reaches `valueOf` and still throws.
+function affectOp(a, op, b) {
+  const left = a instanceof Affect, right = b instanceof Affect;
+
+  if (left && right) {
+    if (COMPARISON.has(op)) return apply(a.arousal, op, b.arousal);
+    return new Affect(apply(a.arousal, op, b.arousal), apply(a.valence, op, b.valence));
+  }
+
+  // A graded value is a plain number, so `a * ~0.5` is an affect and a scalar.
+  const scalar = left ? b : a;
+  if (typeof scalar !== "number") return apply(a, op, b); // valueOf throws, as it should
+
+  const affect = left ? a : b;
+  if (COMPARISON.has(op)) {
+    return left ? apply(affect.arousal, op, scalar) : apply(scalar, op, affect.arousal);
+  }
+  const arousal = left ? apply(affect.arousal, op, scalar) : apply(scalar, op, affect.arousal);
+  return new Affect(arousal, affect.valence);
+}
+
 function sleep(ms) {
   if (!ms) return Promise.resolve();
   return new Promise((r) => setTimeout(r, ms));
@@ -909,16 +1197,24 @@ function drain(f) {
 
 const DURATION_MS = { ms: 1, s: 1000, m: 60000, h: 3600000 };
 
+// A duration is a type, not a number with a suffix (STDLIB.md). A bare number is
+// refused here as well as in the resolver: refusing `every 5` while accepting
+// `every (2 + 3)` as five milliseconds would make the type a matter of how the
+// value was spelled.
 export function durationMs(d) {
-  if (typeof d === "number") return d;
   if (d && typeof d === "object" && d.unit in DURATION_MS) return d.value * DURATION_MS[d.unit];
-  throw new TypeError(`${JSON.stringify(d)} is not a duration`);
+  throw new TypeError(
+    `${JSON.stringify(d)} is not a duration; durations are written 10s or 900ms\n` +
+    "  STDLIB.md",
+  );
 }
 
 export function distancePx(d) {
-  if (typeof d === "number") return d;
   if (d && typeof d === "object" && (d.unit === "px" || d.unit === "%")) return d.value;
-  throw new TypeError(`${JSON.stringify(d)} is not a distance`);
+  throw new TypeError(
+    `${JSON.stringify(d)} is not a distance; distances are written 20px or 50%\n` +
+    "  STDLIB.md",
+  );
 }
 
 export function duration(value, unit) { return { value, unit }; }

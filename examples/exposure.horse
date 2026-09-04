@@ -2,50 +2,57 @@
 #
 # the `stand` primitive: an input that withholds motion rather than producing it.
 # hold the pointer inside a small radius for ten seconds and an image surfaces.
-# drift, and nothing happened.
+# drift, or leave, and nothing happened -- not an error, and not a failure.
+#
+# the shape matters. the lead mare does not stand on anything: it hands `develop`
+# to the page and stops. standing is what happens when someone arrives, and a
+# program that stood at load would hold still against nobody.
 
 @ juniper  left bias
 
 band exposure
 
-    remember targets as [
-        ["loss-quiet-night"     "images/losses/loss1.jpg"]
-        ["loss-records-war"     "images/losses/loss3.jpg"]
-        ["loss-sun-also-rises"  "images/losses/loss2.jpg"]
-    ]
-
     remember hold as 10s
     remember jitter as 20px
 
-    # the hold. tension rises while nothing moves, and the ground darkens with it.
-    # if the pointer drifts past the jitter radius the stand breaks and nothing happened.
-    cue develop target
-        stand hold within jitter as held
-            ^ ears forward   tension ~held   head ~0.0 ^
-        otherwise
+    # the plate does not gather light evenly. exponential, topping out short of
+    # black so the thing being held still on is still legible under it.
+    cue plate t
+        remember climbed as (hands.Math.exp (t * 1.5)) - 1
+        remember full as (hands.Math.exp 1.5) - 1
+        release (climbed / full) * 0.8
+
+    cue develop i
+        # one plate at a time. a second exposure over a showing one has nothing
+        # to develop onto.
+        when (hands.EN_EXPOSURE.busy)
             balk
 
-        release surface target[1]
+        stand hold within jitter as held
+            # the pointer left the row it started on. a row can be wider than the
+            # jitter radius, so leaving is a different fact from drifting twenty
+            # pixels, and either one ends the exposure.
+            #
+            # a balk here ends the cue, so the exposure stops rather than
+            # going on developing against nobody.
+            when not (hands.EN_EXPOSURE.inside i)
+                balk
 
-    # the reveal. slow, and dismissed by any attention at all.
-    cue surface image
-        remember sheet as hands.document.createElement "div"
-        sheet.style.backgroundImage becomes image
-        sheet.style.opacity becomes 0
+            hands.EN_EXPOSURE.shade i (plate held)
+            ^ ears forward   eyes narrowed   lids AU143   head ~0.0   tension ~held ^
+        otherwise
+            # the hold broke. nothing happened, and nothing is wrong.
+            hands.EN_EXPOSURE.clear i
+            balk
 
-        walk
-            hands.document.body.appendChild sheet
-            ^ ears forward   lids AU143   tension ~0.1 ^
-            sheet.style.opacity becomes 1
+        hands.EN_EXPOSURE.clear i
 
-        context showing
-            hears squeal
-                sheet.style.opacity becomes 0
-                leave
+        # ten seconds of holding still, and then the animal looks up.
+        ^ ears forward   eyes wide   nostrils AD38   head ~0.6   tension ~0.5 ^
 
-        release sheet
+        release hands.EN_EXPOSURE.reveal (hands.EN_EXPOSURE.srcOf i)
 
-    lead mare attach
-        graze targets as target
-            develop target
+    lead mare watch-the-rows
+        ^ ears divided   head ~0.05   tension ~0.02 _
+        hands.EN_EXPOSURE.attach develop
         release

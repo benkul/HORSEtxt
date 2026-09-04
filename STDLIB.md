@@ -1,6 +1,6 @@
 # HORSEtxt — Standard Library
 
-Closes gap 17 in `GRAMMAR.md` §13. Bare section references below are to `GRAMMAR.md`.
+Bare section references below are to `GRAMMAR.md`.
 
 **It is small on purpose.** `hands` is the escape hatch for everything that is not
 horse, and per principle zero — where there is no honest equine analogue, HORSEtxt stays
@@ -14,20 +14,17 @@ program needing something is an argument for `hands`.
 
 ## Collections
 
-A list (`[ … ]`) responds to:
+A list (`[ … ]`) is a plain sequence and **has no members of its own**. Indexing is
+`list[n]`, zero-based; traversal is `graze` (§6.1); everything else reaches JavaScript
+through the flat boundary, so `xs.length` and `xs.slice 1` are how you ask.
 
-| Member | Yields | Notes |
-|---|---|---|
-| `count` | number of items | |
-| `empty` | truth | `when deck empty` reads as prose because `empty` is a member, not a keyword |
-| `first` | first item | balks on an empty list |
-| `last` | last item | balks on an empty list |
+That is the difference between a list and the two structures below it. A `forage` and a
+`pile` are the language's own, so they answer in its vocabulary. A list is a value, and
+§11 makes the boundary onto values flat on purpose.
 
-Indexing is `list[n]`, zero-based.
-
-There is no `map`, `filter`, or `reduce`. Traversal is `graze` (§6.1) and filtering is a
-`blank` in the graze body, because horses are selective grazers. Anything beyond that goes
-through `hands`.
+There is no `map`, `filter`, or `reduce`. **Filtering a graze is a `when` around the
+work** — not a `blank`, which leaves the cue rather than the iteration (§10). Selective
+grazing is the animal moving on, rather than issuing a statement about moving on.
 
 ## Forage
 
@@ -70,13 +67,25 @@ nothing is stored — private-mode storage failure is expected, not exceptional.
 
 ## Affect
 
-`~a:~v` responds to `arousal` and `valence` (§9). Nothing else. Every other operation is
-the arithmetic rules in §9, and collapsing to one scalar is a type error.
+`~a:~v` responds to `arousal` and `valence` (§9). Nothing else.
+
+Arithmetic is the rules in §9: two affects combine component-wise and stay a pair, a
+scalar reaches arousal and leaves valence alone, and a comparison reads arousal.
+Collapsing to one scalar — joining an affect to text, or handing it to JavaScript
+arithmetic — is a type error.
 
 ## Numbers, text, truth
 
-Plain. Arithmetic is arithmetic; `+ - * / > < >= <= = !=` and nothing more. Text has no
-members — formatting, splitting, casing, and matching all go through `hands`.
+Plain. Arithmetic is arithmetic; `+ - * / %`, compared with `> < >= <= = !=`, and nothing
+more. `%` binds with `*` and `/`. Text has no members — formatting, splitting, casing,
+and matching all go through `hands`.
+
+**A method used as a value is reported.** `count.at - 1`, `count.at > 10` and
+`"n: " + count.at` all take hold of the method and use it instead of asking it for
+anything — the §11a fault in value position. The first is nothing, the second is false
+however many there are, and the third puts JavaScript source into whatever the page
+displays. All three say so at runtime. `=` and `!=` are the exception: two names may
+hold the same cue, and asking whether they do is a real question.
 
 `bare` is nothing being there. **It is not zero** — zero is a quantity, and `when 0` is
 true. `when` is false for exactly `false` and for bare (`null`, `undefined`, `NaN`).
@@ -95,6 +104,11 @@ remember name as grass in [stored "unnamed"]
 not numbers with suffixes. They do not mix with each other or with bare numbers, and
 `stand 10s within 20px` type-checks because the two positions want different types.
 
+**No arithmetic produces either one.** A sum where a duration or distance belongs is a
+compile error, and a bare number in that position is refused at runtime as well — so
+`every 5` and `every (2 + 3)` are both refused rather than one of them meaning five
+milliseconds.
+
 ## Reaching into JavaScript
 
 `hands` is the boundary, and it is loud on purpose (GRAMMAR.md §11a).
@@ -103,10 +117,20 @@ not numbers with suffixes. They do not mix with each other or with bare numbers,
 it away; `(channel.play)` calls it. Zero-argument calls need the parens — that is the one
 that catches everybody.
 
+**A path that keeps coming back bare is reported.** Three unanswered crossings in a row at
+one path and the boundary says so, once, and then habituates. An answer resets the count,
+and `0`, `""` and `[]` are answers — §8a decides what nothing is, and the boundary agrees
+with it. A note at runtime rather than a compile error: a lookup that misses is ordinary,
+and a lookup that never lands is a question nobody is answering.
+
 **Cues are callbacks, not functions.** Handing a cue to `addEventListener` is right and
 idiomatic. Handing one to `sort`, `filter`, `map`, `reduce`, `find`, `some`, `every` or
 `flatMap` is refused, because a cue is async and those coerce what they get back: a
 promise is truthy, so nothing would be filtered and nothing sorted, silently.
+
+That is a fact about the *boundary*, not a claim that cues are second-class inside the
+language. A cue held under another name is the same cue and calls fine — `remember f as
+draw`, then `(f)` — which is how a dispatch table is written (§3).
 
 If you need something sorted, do the work in HORSEtxt and hand JavaScript the result — or
 better, ask whether it is a sort at all. Separating into two groups is a thing horses do;

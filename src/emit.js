@@ -30,6 +30,7 @@ class Emitter {
     this.band = null;
     this.cue = null;
     this.params = [];
+    this.crossing = false; // inside a `hands` path already being weighed (§11a)
   }
 
   line(text) {
@@ -304,7 +305,7 @@ class Emitter {
       this.line(`H.leaveTrace(${this.expr(node.target)}, ${this.expr(node.value)});`);
       return;
     }
-    this.line(`${this.expr(node.target)} = ${this.expr(node.value)};`);
+    this.line(`${this.unasked(() => this.expr(node.target))} = ${this.expr(node.value)};`);
   }
 
   s_Pile(node) {
@@ -447,11 +448,38 @@ class Emitter {
 
   // ------------------------------------------------------------------ expressions
 
+  // GRAMMAR.md §11a. Every crossing of the `hands` boundary that comes back bare is
+  // counted, per path, and the boundary says so at the limit. `hands` is
+  // `globalThis`, so a proxy would break identity and slow every hot path — but the
+  // emitter knows every path syntactically, which is where the weight goes instead.
+  //
+  // Only the outermost crossing in a path is wrapped. `hands.a.b` is one question
+  // asked of the boundary, not two, and the intermediate `hands.a` was never asked
+  // for on its own.
   expr(node) {
     if (!node) return "undefined";
     const m = this[`e_${node.type}`];
     if (!m) throw new Error(`emit: no rule for expression ${node.type} at line ${node.line}`);
-    return m.call(this, node);
+    if (this.crossing || !isCrossing(node)) return m.call(this, node);
+
+    return this.unasked(() => `H.crossed(${JSON.stringify(pathOf(node))}, ${m.call(this, node)})`);
+  }
+
+  // A position where nothing is being asked of the boundary: the left of a
+  // `becomes`, the target of a `new`, the callee of a call, and every step along a
+  // path on the way to its end. Naming a path is not asking it for anything — what
+  // is asked for is whatever is at the end, and that is what gets counted.
+  unasked(fn) {
+    const was = this.crossing;
+    this.crossing = true;
+    try { return fn(); } finally { this.crossing = was; }
+  }
+
+  // Arguments are their own questions, asked of the boundary in their own right.
+  asked(fn) {
+    const was = this.crossing;
+    this.crossing = false;
+    try { return fn(); } finally { this.crossing = was; }
   }
 
   e_Number(n) { return String(n.value); }
@@ -478,7 +506,7 @@ class Emitter {
   e_Recognise(n) { return `H.recognise(${this.expr(n.value)})`; }
 
   // The enclosing cue's parameters travel with the call: they are what this animal
-  // is holding, and a horse cannot see its own muzzle (GRAMMAR.md §12g).
+  // is holding, and a horse cannot see its own muzzle (GRAMMAR.md §9a).
   e_Flehmen(n) {
     const held = this.params.length ? `[${this.params.map(js).join(", ")}]` : "[]";
     return `(await H.flehmen(${this.expr(n.value)}, ${side(n.lateral)}, ${held}))`;
@@ -487,8 +515,8 @@ class Emitter {
   // Plain JavaScript construction, and deliberately not awaited: a constructor is
   // not a cue and is not conditioned by anything.
   e_New(n) {
-    const args = n.args.map((a) => this.expr(a));
-    return `(new ${this.expr(n.target)}(${args.join(", ")}))`;
+    const args = this.asked(() => n.args.map((a) => this.expr(a)));
+    return `(new ${this.unasked(() => this.expr(n.target))}(${args.join(", ")}))`;
   }
 
   e_Member(n) { return `${this.expr(n.object)}.${n.name}`; }
@@ -496,12 +524,25 @@ class Emitter {
   e_Not(n) { return `(!H.truth(${this.expr(n.value)}))`; }
   e_Negate(n) { return `(-${this.expr(n.value)})`; }
 
-  e_Binary(n) {
-    return `(${this.expr(n.left)} ${n.op} ${this.expr(n.right)})`;
+  e_Binary(n) { return this.operate(n); }
+
+  // Every operator that treats its operands as values goes through the runtime, so
+  // a method used as one is said out loud (§11a). The paths travel with it, so the
+  // note can name the side at fault; a literal cannot be a method and carries none.
+  operate(n) {
+    const left = this.expr(n.left), right = this.expr(n.right);
+    const lp = named(n.left), rp = named(n.right);
+    const where = lp || rp ? `, ${js0(lp)}, ${js0(rp)}` : "";
+    return `H.op(${left}, ${JSON.stringify(n.op)}, ${right}${where})`;
   }
+  // Identity stays plain. Two names may hold the same cue and asking whether they
+  // do is a real question, so `=` and `!=` are the one place a method is a value.
   e_Compare(n) {
-    const op = n.op === "=" ? "===" : n.op === "!=" ? "!==" : n.op;
-    return `(${this.expr(n.left)} ${op} ${this.expr(n.right)})`;
+    if (n.op === "=" || n.op === "!=") {
+      const op = n.op === "=" ? "===" : "!==";
+      return `(${this.expr(n.left)} ${op} ${this.expr(n.right)})`;
+    }
+    return this.operate(n);
   }
   e_Logical(n) {
     const op = n.op === "and" ? "&&" : "||";
@@ -528,12 +569,18 @@ class Emitter {
   // belongs to was bound to a local name — which is right. Binding a value out of
   // `hands` does not bring it inside the effect system.
   e_Call(n) {
-    const args = n.args.map((a) => this.expr(a));
+    const args = this.asked(() => n.args.map((a) => this.expr(a)));
     if (n.callee.type === "Member" || n.callee.type === "Index" ||
         n.callee.type === "Hands" || rootIsHands(n.callee)) {
-      return `(await ${this.expr(n.callee)}(${args.join(", ")}))`;
+      return `(await ${this.unasked(() => this.expr(n.callee))}(${args.join(", ")}))`;
     }
-    return `(await H.call(${this.expr(n.callee)}, [${args.join(", ")}], ${side(n.lateral)}))`;
+    // The name the call was written under travels with it, so a call on something
+    // that turns out not to be a cue can say which word was wrong. It is not always
+    // the cue's own name: a cue passed to a cue is called under the receiver's word
+    // for it (GRAMMAR.md §3).
+    const held = n.callee.type === "Name" ? JSON.stringify(n.callee.name) : "null";
+    return `(await H.call(${this.expr(n.callee)}, [${args.join(", ")}], ` +
+           `${side(n.lateral)}, ${held}))`;
   }
 }
 
@@ -545,6 +592,43 @@ function rootIsHands(node) {
   let n = node;
   while (n && (n.type === "Member" || n.type === "Index")) n = n.object;
   return !!n && n.type === "Hands";
+}
+
+// A crossing is a path *rooted in `hands`* — syntactically, which is the only way
+// the emitter can know. A method call on a locally bound object is not one of these
+// and is not counted: §12 already says members are unresolvable by nature,
+// and guessing which of them came from the boundary would be exactly that guess.
+function isCrossing(node) {
+  if (node.type === "Member" || node.type === "Index") return rootIsHands(node);
+  if (node.type === "Call") return rootIsHands(node.callee);
+  return false;
+}
+
+// What to call an operand in a diagnostic, or null when it cannot be a method.
+function named(node) {
+  if (!node) return null;
+  if (node.type === "Member" || node.type === "Index" || node.type === "Name") {
+    return pathOf(node);
+  }
+  return null;
+}
+
+function js0(v) { return v === null ? "null" : JSON.stringify(v); }
+
+// The stimulus is the path, not the occasion — so two calls to the same path share
+// one count, the way habituation is keyed to the shape of a thing and not to where
+// it was met. An index is not part of the shape: `images[0]` and `images[1]` are the
+// same question asked twice.
+function pathOf(node) {
+  if (!node) return "?";
+  switch (node.type) {
+    case "Hands": return "hands";
+    case "Name": return node.name;
+    case "Member": return `${pathOf(node.object)}.${node.name}`;
+    case "Index": return `${pathOf(node.object)}[]`;
+    case "Call": return pathOf(node.callee);
+    default: return "?";
+  }
 }
 
 function countDeclarations(body) {

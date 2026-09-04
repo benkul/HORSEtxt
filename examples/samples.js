@@ -111,9 +111,22 @@ band looking
 
     lead mare speak
         remember call as ~0.8:~-0.3
-        # arousal and valence are independent and do not reduce to one pitch.
-        # asking for a single magnitude is a type error.
-        release call.arousal`,
+        remember answer as ~0.1:~0.4
+
+        # two affects combine component-wise and the answer is still a pair.
+        remember together as call + answer
+
+        # a scalar reaches arousal and leaves valence alone: intensity scales,
+        # sign does not.
+        remember louder as call * 2
+
+        # arousal is the axis with an order, so a comparison reads it.
+        when louder > answer
+            ^ ears forward   voice ~0.9:~-0.3 ^
+
+        # naming an axis is how one number comes out of a pair, and the only
+        # way. asking for a single magnitude any other way is a type error.
+        release together.valence`,
 
   "halting a held gait": `band held
 
@@ -133,17 +146,21 @@ band looking
 
   "a late release is punishing": `band slow
 
-    forage strides of 1 through 5
+    # the release is the reinforcer, and releasing late does not merely take
+    # longer: it punishes the response that should have been rewarded. lateness
+    # belongs to whoever is slow to let go, and here that is the far side of the
+    # boundary -- this cue is handed to javascript, which keeps it for a second
+    # and a half before calling it back.
+    #
+    # time spent standing, or between the strides of a gait, is not this. that is
+    # the animal taking the time it was told to take, and it answered immediately.
+    cue lets-go-eventually settle refuse
+        hands.setTimeout settle 1500
+        release
 
-    # the release is the reinforcer. releasing late does not merely take longer:
-    # it punishes the response it should reward. this cue takes well over a second
-    # to release, and says so.
     lead mare dawdle
-        walk every 300ms
-            when strides.empty
-                halt
-            ^ tension ~(strides.graze / 5) ^
-        release`,
+        remember asked as new hands.Promise lets-go-eventually
+        release (asked.then)`,
 
   "nothing, and none": `band counting
 
@@ -173,8 +190,8 @@ band looking
   "a signal that carried something": `band gates
 
     # a signal has no meaning of its own. the nearest context decides what it
-    # means -- and since v0.4 the handler can name what arrived, which is what
-    # makes a context worth having.
+    # means -- and the handler can name what arrived, which is what makes a
+    # context worth having.
 
     cue creaked which
         snort which
@@ -189,6 +206,33 @@ band looking
         remember answer as (creaked "the far gate")
         ^ tension ~0.2 ^
         release answer`,
+
+  "a cue held under another name": `band naming
+
+    # a cue in expression position is the cue itself, so a cue held under another
+    # name calls fine and a dispatch table is expressible.
+    #
+    # the name a call is written under is the handler's word for the signal, not a
+    # second signal. training does not follow the word: it stays with the cue, and
+    # the count is kept against the name it was taught under.
+
+    cue soft
+        release "soft"
+
+    cue loud
+        release "loud"
+
+    cue answer-with f
+        release (f)
+
+    cue for-the-hour hour
+        when (hour < 7)
+            release soft
+        release loud
+
+    lead mare speak
+        remember chosen as (for-the-hour 3)
+        release (answer-with chosen)`,
 
   "a stride that did not land": `band footing
 

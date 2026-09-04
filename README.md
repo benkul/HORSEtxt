@@ -20,8 +20,15 @@ band gallery
 
 ## Status
 
-**v0.1 runs, in the page.** Lexer, parser, resolver, emitter, runtime, browser loader,
-host, CLI, and a playground.
+**v0.6.0 runs, in the page, and carries six live pages.** Lexer, parser, resolver,
+emitter, runtime, browser loader, host, CLI, and a playground.
+
+`GRAMMAR.md` is the specification; §12 there is what the language does not do.
+
+**The documents are checked.** `test/claims.test.js` executes every testable claim the
+docs make — one test per sentence, named for the claim and the section it comes from. A
+failure reads as the sentence that is no longer true. Prose is not checked by anything
+else, and claims here have been wrong for whole releases at a time.
 
 ```
 npm test      # lexer, parser, resolver, emitter, loader
@@ -118,10 +125,13 @@ Beyond that, the parts of the design still ahead of the implementation:
   one system for moving an animal that would rather you did not, and the size of a flight
   zone is set by handling history. Only the point of balance exists today; the other two
   wait for the individual to have a history to be sized by.
-- `hears creak as v` — a handler can see that a signal arrived but not what it carried.
+- **Waiting on a value.** A cue can be handed to `new hands.Promise`, so the language can
+  produce a promise and has no way to wait on one it is holding — awaiting happens only
+  at call sites. `GRAMMAR.md` §12.
+- **Work somewhere else.** A `bachelor` group is an isolate by its own definition, which
+  is where off-thread work belongs. Designed and unbuilt; `GRAMMAR.md` §13.
 
-The grammar is in `GRAMMAR.md`, with every gap the implementation found recorded in
-§12a–§12e. Worked programs are in `examples/`.
+The grammar is in `GRAMMAR.md`, and worked programs are in `examples/`.
 
 ## What it is
 
@@ -175,8 +185,8 @@ Nothing is arbitrary. If a rule cannot be traced to a citation, it is a bug.
 ## Where the reasoning lives
 
 - `BIBLIOGRAPHY.md` — the manual. Every construct, and the paper it comes from.
-- `GRAMMAR.md` §12a–§12e — every gap the implementation found, in the order it found
-  them, with what changed and why. Read as a record of a design meeting reality.
+- `GRAMMAR.md` — the specification. §12 is what the language does not do, and why each
+  limit is chosen or merely true.
 - `STDLIB.md` — what the small standard library holds, and what it deliberately omits.
 
 ## Licence
